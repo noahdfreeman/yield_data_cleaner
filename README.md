@@ -17,10 +17,16 @@ representative raw monitor data.
 
 1. Select a point layer already loaded in QGIS or browse for a local file.
 2. Review automatically suggested column mappings and source CRS.
-3. Select, browse for, digitize, or derive one field boundary.
-4. Reconstruct harvest passes and review recommended filters.
-5. Apply non-destructive cleaning while retaining every source observation and reason.
-6. Save a GeoPackage run package and portable HTML before/after review.
+3. Create the canonical audit layer from the second tab in the same guided dialog.
+4. Select, browse for, or derive one field boundary from the third tab.
+5. Reconstruct harvest passes and review recommended filters.
+6. Apply non-destructive cleaning while retaining every source observation and reason.
+7. Save a GeoPackage run package and portable HTML before/after review.
+
+The guided window keeps Input & Mapping, Canonical Audit, and Field Boundary as
+top-level tabs. Context-sensitive instructions remain visible in a right-side
+help panel, and the audit and boundary tabs run without opening separate
+Processing dialogs.
 
 See [YIELD_DATA_CLEANER_SPECIFICATION.md](YIELD_DATA_CLEANER_SPECIFICATION.md)
 for the phased delivery plan and acceptance gates.

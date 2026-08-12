@@ -91,6 +91,22 @@ def main() -> None:
         trace("dialog-created")
         if "Yield Data Cleaner 0.1.0" not in dialog.windowTitle():
             raise AssertionError("Guided dialog title/version is incorrect")
+        expected_tabs = (
+            "1. Input & Mapping",
+            "2. Canonical Audit",
+            "3. Field Boundary",
+        )
+        actual_tabs = tuple(dialog.tabs.tabText(index) for index in range(dialog.tabs.count()))
+        if actual_tabs != expected_tabs:
+            raise AssertionError(f"Guided workflow tabs are incorrect: {actual_tabs}")
+        if dialog.findChild(type(dialog.help_panel), "yieldDataCleanerHelpPanel") is None:
+            raise AssertionError("Guided workflow help panel is missing")
+        for index, expected_help in enumerate(("Input & Mapping", "Canonical Audit", "Field Boundary")):
+            dialog.tabs.setCurrentIndex(index)
+            if expected_help not in dialog.help_panel.toPlainText():
+                raise AssertionError(f"Help content did not update for {expected_help}")
+        if dialog.findChild(type(dialog.tabs), "yieldDataCleanerWorkflowTabs") is None:
+            raise AssertionError("Guided workflow tab widget is missing")
         dialog.close()
         dialog.deleteLater()
 
@@ -133,6 +149,9 @@ def main() -> None:
                 raise AssertionError("Inspection report does not assert read-only behavior")
 
             audit_path = directory_path / "canonical_audit.gpkg"
+            audit_sink = YieldInputInspectionDialog._gpkg_sink_uri(
+                audit_path, "canonical_observations"
+            )
             mapping_path = directory_path / "applied_mapping.json"
             manifest_path = directory_path / "run_manifest.json"
             audit_result = processing.run(
@@ -143,7 +162,7 @@ def main() -> None:
                     "UNIT_PROFILE": 0,
                     "MAPPING_REPORT": str(mapping_path),
                     "RUN_MANIFEST": str(manifest_path),
-                    "OUTPUT": str(audit_path),
+                    "OUTPUT": audit_sink,
                 },
             )
             audit_layer = QgsVectorLayer(audit_result["OUTPUT"], "canonical_audit", "ogr")
@@ -219,10 +238,14 @@ def main() -> None:
                     "WIDTH_FIELD": "swath_width_m",
                     "DEFAULT_WIDTH": 0.0,
                     "PROVENANCE": str(directory_path / "boundary_provenance.json"),
-                    "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
+                    "OUTPUT": YieldInputInspectionDialog._gpkg_sink_uri(
+                        audit_path, "field_boundary"
+                    ),
                 },
             )
-            boundary_output = boundary_result["OUTPUT"]
+            boundary_output = QgsVectorLayer(
+                boundary_result["OUTPUT"], "field_boundary", "ogr"
+            )
             if not boundary_output.isValid() or boundary_output.featureCount() != 1:
                 raise AssertionError("Operational boundary was not derived")
             boundary_feature = next(boundary_output.getFeatures())
