@@ -51,6 +51,19 @@ detect-secrets scan yield_data_cleaner
 QGIS performs its own authoritative asynchronous scan after upload; a local
 pass does not claim repository approval.
 
+### Live QGIS development link
+
+Link the source package into the default QGIS profile once:
+
+```powershell
+.\tools\install_development_link.ps1
+```
+
+The installed path is a Windows directory junction, so later source edits are
+visible immediately. With QGIS Plugin Reloader installed, select
+`yield_data_cleaner` and reload after each update. Restart QGIS when plugin
+metadata or the package layout changes.
+
 ## Status and limitations
 
 - Version `0.1.0` is experimental and is not approved for agronomic decisions.
