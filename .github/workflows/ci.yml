@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pure-python:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.10", "3.12", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m unittest discover -s tests -v
+      - run: python tools/verify_release_version.py
+      - run: python tools/package_qgis_plugin.py
+      - shell: bash
+        run: |
+          archive=$(find dist -maxdepth 1 -name 'yield_data_cleaner-*.zip' -print -quit)
+          python tools/validate_release_archive.py "$archive"
+
+  security-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements-dev.txt
+      - run: black --check --line-length 100 yield_data_cleaner tests tools
+      - run: flake8 --max-line-length 100 yield_data_cleaner
+      - run: python tools/package_qgis_plugin.py
+      - name: Scan exact release payload
+        shell: bash
+        run: |
+          mkdir exact-release
+          unzip -q dist/yield_data_cleaner-*.zip -d exact-release
+          bandit -r exact-release/yield_data_cleaner -q
+          detect-secrets scan exact-release/yield_data_cleaner > detect-secrets-results.json
+          python -c "import json; data=json.load(open('detect-secrets-results.json', encoding='utf-8')); assert not data['results'], data['results']"

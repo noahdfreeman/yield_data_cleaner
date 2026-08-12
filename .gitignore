@@ -1,0 +1,27 @@
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local/private yield-monitor fixtures must never be committed by default.
+private_data/
+local_data/
+test_data_private/
+
+# Legacy USDA reference source is retained locally but excluded from public releases.
+YE2code/
+YE2code.zip

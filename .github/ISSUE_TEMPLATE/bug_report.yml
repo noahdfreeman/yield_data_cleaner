@@ -1,0 +1,28 @@
+name: Bug report
+description: Report reproducible Yield Data Cleaner behavior
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: input
+    id: versions
+    attributes:
+      label: QGIS, plugin, and operating-system versions
+    validations:
+      required: true
+  - type: textarea
+    id: input
+    attributes:
+      label: Input format and schema
+      description: Do not attach private farm data. List format, fields, CRS, crop, and units.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and observed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized error and logs

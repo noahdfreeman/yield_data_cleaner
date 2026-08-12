@@ -1,0 +1,19 @@
+name: Feature request
+description: Propose a workflow, format, filter, or review improvement
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: User need
+    validations:
+      required: true
+  - type: textarea
+    id: format
+    attributes:
+      label: Relevant input/output format and public documentation
+  - type: textarea
+    id: validation
+    attributes:
+      label: How should the result be validated?
