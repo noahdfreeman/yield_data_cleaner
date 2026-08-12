@@ -28,7 +28,7 @@ class YieldDataCleanerPlugin:
         self.initProcessing()
         if self.iface is None or self.action is not None:
             return
-        icon = QIcon(str(Path(__file__).parent / "resources" / "icon.svg"))
+        icon = QIcon(str(Path(__file__).parent / "resources" / "icon.png"))
         self.action = QAction(icon, "Inspect Yield Monitor Data...", self.iface.mainWindow())
         self.action.setObjectName("yieldDataCleanerInspectAction")
         self.action.setToolTip("Inspect yield input columns and coordinate reference system")

@@ -23,3 +23,4 @@ All notable changes to Yield Data Cleaner will be documented here.
 - Product specification covering phased delivery through 1.0 and future equipment-platform connectors.
 - Unified guided workflow with top-level Input & Mapping, Canonical Audit, and
   Field Boundary tabs, embedded execution, and contextual right-side help.
+- Added the Yield Data Cleaner for QGIS logo as the packaged plugin and toolbar icon.

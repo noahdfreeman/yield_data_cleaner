@@ -30,6 +30,7 @@ class RepositoryStructureTests(unittest.TestCase):
         self.assertEqual(parser.get("general", "hasProcessingProvider"), "True")
         self.assertEqual(parser.get("general", "experimental"), "True")
         icon = parser.get("general", "icon")
+        self.assertEqual(icon, "resources/icon.png")
         self.assertTrue((PACKAGE / icon).is_file(), icon)
         for key in ("homepage", "repository", "tracker"):
             self.assertTrue(parser.get("general", key).startswith("https://"), key)
