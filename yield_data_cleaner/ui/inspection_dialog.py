@@ -535,9 +535,7 @@ class YieldInputInspectionDialog(QDialog):
                     "OUTPUT_CRS": self.audit_output_crs.text().strip() or None,
                     "MAPPING_REPORT": str(report_path),
                     "RUN_MANIFEST": str(manifest_path),
-                    "OUTPUT": self._gpkg_sink_uri(
-                        geopackage_path, "canonical_observations"
-                    ),
+                    "OUTPUT": self._gpkg_sink_uri(geopackage_path, "canonical_observations"),
                 },
             )
             output_uri = str(result.get("OUTPUT") or geopackage_path)

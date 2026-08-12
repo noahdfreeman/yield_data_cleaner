@@ -101,7 +101,9 @@ def main() -> None:
             raise AssertionError(f"Guided workflow tabs are incorrect: {actual_tabs}")
         if dialog.findChild(type(dialog.help_panel), "yieldDataCleanerHelpPanel") is None:
             raise AssertionError("Guided workflow help panel is missing")
-        for index, expected_help in enumerate(("Input & Mapping", "Canonical Audit", "Field Boundary")):
+        for index, expected_help in enumerate(
+            ("Input & Mapping", "Canonical Audit", "Field Boundary")
+        ):
             dialog.tabs.setCurrentIndex(index)
             if expected_help not in dialog.help_panel.toPlainText():
                 raise AssertionError(f"Help content did not update for {expected_help}")
@@ -243,9 +245,7 @@ def main() -> None:
                     ),
                 },
             )
-            boundary_output = QgsVectorLayer(
-                boundary_result["OUTPUT"], "field_boundary", "ogr"
-            )
+            boundary_output = QgsVectorLayer(boundary_result["OUTPUT"], "field_boundary", "ogr")
             if not boundary_output.isValid() or boundary_output.featureCount() != 1:
                 raise AssertionError("Operational boundary was not derived")
             boundary_feature = next(boundary_output.getFeatures())
