@@ -21,6 +21,9 @@ All notable changes to Yield Data Cleaner will be documented here.
 - Pure-Python and installed-QGIS tests, packaging, archive validation, version checks,
   and QGIS-aligned security scans.
 - Product specification covering phased delivery through 1.0 and future equipment-platform connectors.
-- Unified guided workflow with top-level Input & Mapping, Canonical Audit, and
-  Field Boundary tabs, embedded execution, and contextual right-side help.
+- Unified guided workflow with top-level Input & Mapping, Field Boundary, and
+  Prepare Dataset tabs, embedded execution, and contextual right-side help.
+- Added a guided final run that writes both the prepared observations and boundary,
+  uses field/crop/date output names, and increments repeated run folders instead of
+  blocking on existing or partial output files.
 - Added the Yield Data Cleaner for QGIS logo as the packaged plugin and toolbar icon.

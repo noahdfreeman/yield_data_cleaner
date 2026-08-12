@@ -93,8 +93,8 @@ def main() -> None:
             raise AssertionError("Guided dialog title/version is incorrect")
         expected_tabs = (
             "1. Input & Mapping",
-            "2. Canonical Audit",
-            "3. Field Boundary",
+            "2. Field Boundary",
+            "3. Prepare Dataset",
         )
         actual_tabs = tuple(dialog.tabs.tabText(index) for index in range(dialog.tabs.count()))
         if actual_tabs != expected_tabs:
@@ -102,7 +102,7 @@ def main() -> None:
         if dialog.findChild(type(dialog.help_panel), "yieldDataCleanerHelpPanel") is None:
             raise AssertionError("Guided workflow help panel is missing")
         for index, expected_help in enumerate(
-            ("Input & Mapping", "Canonical Audit", "Field Boundary")
+            ("Input & Mapping", "Field Boundary", "Prepare Dataset")
         ):
             dialog.tabs.setCurrentIndex(index)
             if expected_help not in dialog.help_panel.toPlainText():
@@ -307,7 +307,7 @@ def main() -> None:
             inside_classified = classification_result["INSIDE_OBSERVATIONS"]
             outside_classified = classification_result["OUTSIDE_OBSERVATIONS"]
             if all_classified.featureCount() != 2:
-                raise AssertionError("Boundary audit output did not retain all observations")
+                raise AssertionError("Prepared boundary output did not retain all observations")
             if inside_classified.featureCount() != 1 or outside_classified.featureCount() != 1:
                 raise AssertionError("Boundary classification counts are incorrect")
             statuses = {feature["boundary_status"] for feature in all_classified.getFeatures()}

@@ -7,8 +7,8 @@ auditable Python/PyQGIS workflow.
 
 Development is currently at version `0.1.0`. The first milestone provides the
 plugin foundation, editable automatic column suggestions, reusable mappings,
-crop/unit profiles, CRS recognition/transformation, and a canonical audit-layer
-output. The first Phase 2 slice can prepare an existing or derived operational
+crop/unit profiles, CRS recognition/transformation, and a non-destructive prepared
+dataset. The first Phase 2 slice can prepare an existing or derived operational
 boundary and non-destructively classify inside/outside observations. Cleaning
 filters and production claims remain experimental until they are validated with
 representative raw monitor data.
@@ -17,16 +17,17 @@ representative raw monitor data.
 
 1. Select a point layer already loaded in QGIS or browse for a local file.
 2. Review automatically suggested column mappings and source CRS.
-3. Create the canonical audit layer from the second tab in the same guided dialog.
-4. Select, browse for, or derive one field boundary from the third tab.
+3. Select, browse for, or configure derivation of one field boundary.
+4. Choose a parent output folder and create the prepared dataset.
 5. Reconstruct harvest passes and review recommended filters.
 6. Apply non-destructive cleaning while retaining every source observation and reason.
 7. Save a GeoPackage run package and portable HTML before/after review.
 
-The guided window keeps Input & Mapping, Canonical Audit, and Field Boundary as
+The guided window keeps Input & Mapping, Field Boundary, and Prepare Dataset as
 top-level tabs. Context-sensitive instructions remain visible in a right-side
-help panel, and the audit and boundary tabs run without opening separate
-Processing dialogs.
+help panel. A run receives a collision-safe folder and filenames based on the
+field or boundary name, crop, and date, such as
+`Beard_BND_corn_2026-08-12/Beard_BND_corn_2026-08-12_yield_data.gpkg`.
 
 See [YIELD_DATA_CLEANER_SPECIFICATION.md](YIELD_DATA_CLEANER_SPECIFICATION.md)
 for the phased delivery plan and acceptance gates.

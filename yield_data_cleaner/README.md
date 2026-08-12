@@ -10,14 +10,15 @@ Version 0.1.0 can:
 - save and reload mapping profiles;
 - recognize or require confirmation of the source CRS;
 - transform geographic points into a local projected analysis CRS; and
-- create a non-destructive canonical audit layer with original and normalized
-  values;
+- create a non-destructive prepared dataset with original and normalized values;
 - validate a single existing boundary or derive a reviewed operational extent;
   and
 - classify points inside/outside a boundary while retaining all observations.
 
 No cleaning decision is made by this development version. Canonical records use
 `clean_status=unavailable` until versioned filters are implemented and reviewed.
+The guided output folder and files are named from the field boundary, crop, and
+run date; numbered suffixes prevent existing runs from being overwritten.
 
 Project documentation and issue tracking:
 <https://github.com/noahdfreeman/yield_data_cleaner>

@@ -29,9 +29,9 @@ class YieldDataCleanerPlugin:
         if self.iface is None or self.action is not None:
             return
         icon = QIcon(str(Path(__file__).parent / "resources" / "icon.png"))
-        self.action = QAction(icon, "Inspect Yield Monitor Data...", self.iface.mainWindow())
+        self.action = QAction(icon, "Open Yield Data Cleaner...", self.iface.mainWindow())
         self.action.setObjectName("yieldDataCleanerInspectAction")
-        self.action.setToolTip("Inspect yield input columns and coordinate reference system")
+        self.action.setToolTip("Prepare yield monitor data for cleaning")
         self.action.triggered.connect(self.open_dialog)
         self.iface.addPluginToMenu(PLUGIN_NAME, self.action)
         self.iface.addToolBarIcon(self.action)

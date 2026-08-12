@@ -16,4 +16,4 @@ homepage=https://github.com/noahdfreeman/yield_data_cleaner
 repository=https://github.com/noahdfreeman/yield_data_cleaner
 tracker=https://github.com/noahdfreeman/yield_data_cleaner/issues
 tags=agriculture,yield monitor,yield cleaning,precision agriculture,processing
-changelog=0.1.0 - Initial experimental foundation with mapping review, reusable profiles, canonical audit output, unit normalization, and CRS recognition/transformation.
+changelog=0.1.0 - Initial experimental foundation with guided dataset preparation, reusable mappings, field boundaries, unit normalization, and CRS recognition/transformation.

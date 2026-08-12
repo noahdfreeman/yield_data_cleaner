@@ -508,11 +508,17 @@ version change and migration notes.
 
 Each run creates a new folder with a collision-safe name such as:
 
-`yield_cleaning_<field>_<date>_<run-id>/`
+`<field-or-boundary>_<crop>_<YYYY-MM-DD>/`
+
+The field component is suggested from the selected boundary layer or file and is
+editable before the run. If that folder already exists, the plugin creates
+`_02`, `_03`, and so on instead of blocking the user or overwriting an earlier or
+partial run. Primary files repeat the run-folder name so they remain identifiable
+when copied elsewhere.
 
 ### Required files
 
-#### `yield_cleaning_results.gpkg`
+#### `<run-folder-name>_yield_data.gpkg`
 
 - `field_boundary`: accepted input, digitized, or derived boundary.
 - `all_observations`: every source observation plus canonical and cleaning fields.
@@ -523,13 +529,13 @@ Each run creates a new folder with a collision-safe name such as:
 
 #### Audit and summary files
 
-- `run_manifest.json`
-- `cleaning_recipe.json`
-- `column_mapping.json`
-- `filter_summary.csv`
-- `yield_cleaning_review.html`
-- `yield_cleaning_review_data/`
-- `run_log.txt`
+- `<run-folder-name>_run_manifest.json`
+- `<run-folder-name>_cleaning_recipe.json`
+- `<run-folder-name>_column_mapping.json`
+- `<run-folder-name>_filter_summary.csv`
+- `<run-folder-name>_yield_cleaning_review.html`
+- `<run-folder-name>_yield_cleaning_review_data/`
+- `<run-folder-name>_run_log.txt`
 
 ### Optional exports
 
@@ -575,18 +581,18 @@ must still load offline.
 
 ### Guided dialog
 
-The toolbar/menu action opens a staged dialog:
+The toolbar/menu action opens one staged dialog. The user-facing term
+**Prepare Dataset** replaces **Canonical Audit**; canonical remains an internal
+schema and implementation term. Initial and future tabs are:
 
-1. Input
-2. Column mapping
-3. CRS review
-4. Crop and units
-5. Field boundary
-6. Passes
-7. Filter recommendations
-8. Map/manual review
-9. Output and run
-10. Completion
+1. Input & Mapping (including CRS, crop, and unit review)
+2. Field Boundary
+3. Prepare Dataset (named output location and initial prepared run)
+4. Passes
+5. Filter Recommendations
+6. Map / Manual Review
+7. Clean & Export
+8. Completion
 
 The dialog uses the same engine and recipe as the Processing algorithm. It must
 not contain a separate implementation of cleaning logic.
@@ -762,12 +768,12 @@ single scan performed after the release is already packaged.
 - [x] Browse for and import generic vector and delimited files from the computer.
 - [x] Detect delimiter, geometry fields, CRS definitions/hints, and common yield columns.
 - [x] Implement CRS confidence, user confirmation, axis-order review, analysis-CRS selection, and safe transformation.
-- [x] Preserve source coordinates and CRS provenance in the canonical audit layer and manifest.
+- [x] Preserve source coordinates and CRS provenance in the prepared observation layer and manifest.
 - [x] Build column-mapping review and save/load mapping profiles.
 - [x] Create a minimal run manifest.
 - [x] Add unit tests, plugin-structure tests, packaging tool, and archive validator.
 
-**Phase 1 exit gate:** a user can install the plugin, choose a loaded layer or browse for a generic point/CSV dataset, review mappings and CRS handling, and create a transformed canonical audit layer without cleaning it.
+**Phase 1 exit gate:** a user can install the plugin, choose a loaded layer or browse for a generic point/CSV dataset, review mappings and CRS handling, and create a transformed prepared dataset without cleaning it.
 
 ### Phase 2 - Crop, units, and boundary workflow (0.2.0)
 

@@ -63,7 +63,7 @@ class CreateCanonicalAuditAlgorithm(QgsProcessingAlgorithm):
         return "create_canonical_audit"
 
     def displayName(self):
-        return self.tr("Create canonical yield audit layer")
+        return self.tr("Prepare yield data for cleaning")
 
     def group(self):
         return self.tr("Input and preparation")
@@ -73,8 +73,8 @@ class CreateCanonicalAuditAlgorithm(QgsProcessingAlgorithm):
 
     def shortHelpString(self):
         return self.tr(
-            "Create a point layer that preserves source fields and adds normalized, "
-            "vendor-neutral audit fields. Choose either a loaded point source or a "
+            "Prepare a point layer that preserves source fields and adds normalized, "
+            "vendor-neutral fields. Choose either a loaded point source or a "
             "local CSV/vector file. Geographic coordinates are transformed to a local "
             "projected CRS unless an output CRS is supplied. No cleaning is performed."
         )
@@ -155,7 +155,7 @@ class CreateCanonicalAuditAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSink(
                 self.OUTPUT,
-                self.tr("Canonical audit observations"),
+                self.tr("Prepared yield observations"),
                 type=point_type,
             )
         )
@@ -471,7 +471,7 @@ class CreateCanonicalAuditAlgorithm(QgsProcessingAlgorithm):
         manifest_path = Path(self.parameterAsFileOutput(parameters, self.RUN_MANIFEST, context))
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-        feedback.pushInfo(f"Canonical audit layer uses {analysis_crs.authid()}")
+        feedback.pushInfo(f"Prepared yield layer uses {analysis_crs.authid()}")
         return {
             self.OUTPUT: destination_id,
             self.MAPPING_REPORT: str(report_path),

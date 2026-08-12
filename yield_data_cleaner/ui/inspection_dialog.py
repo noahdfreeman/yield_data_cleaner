@@ -37,6 +37,7 @@ from ..core.column_detection import FIELD_ALIASES, detect_columns
 from ..core.crs_service import recognize_crs
 from ..core.delimited_text import inspect_delimited_file
 from ..core.mapping_profile import MappingProfile, load_mapping_profile, save_mapping_profile
+from ..core.run_naming import build_run_stem, next_available_run_folder, run_file_paths
 from ..core.settings import PLUGIN_NAME
 from ..version import VERSION
 
@@ -62,8 +63,8 @@ class YieldInputInspectionDialog(QDialog):
         self.tabs = QTabWidget()
         self.tabs.setObjectName("yieldDataCleanerWorkflowTabs")
         self.tabs.addTab(self._build_input_tab(), "1. Input & Mapping")
-        self.tabs.addTab(self._build_audit_tab(), "2. Canonical Audit")
-        self.tabs.addTab(self._build_boundary_tab(), "3. Field Boundary")
+        self.tabs.addTab(self._build_boundary_tab(), "2. Field Boundary")
+        self.tabs.addTab(self._build_prepare_tab(), "3. Prepare Dataset")
         self.tabs.currentChanged.connect(self._update_help)
         workspace.addWidget(self.tabs, 3)
 
@@ -98,12 +99,14 @@ class YieldInputInspectionDialog(QDialog):
         self.loaded_radio.setChecked(True)
         self.file_radio = QRadioButton("Browse for a file on this computer")
         self.layer_combo = QComboBox()
+        self.layer_combo.currentIndexChanged.connect(self._refresh_suggested_field_name)
         refresh_button = QPushButton("Refresh layers")
         refresh_button.clicked.connect(self._refresh_layers)
         layer_row = QHBoxLayout()
         layer_row.addWidget(self.layer_combo, 1)
         layer_row.addWidget(refresh_button)
         self.file_path = QLineEdit()
+        self.file_path.textChanged.connect(self._refresh_suggested_field_name)
         browse_button = QPushButton("Browse...")
         browse_button.clicked.connect(self._browse)
         file_row = QHBoxLayout()
@@ -115,7 +118,7 @@ class YieldInputInspectionDialog(QDialog):
         source_layout.addRow("Local file", file_row)
         layout.addWidget(source_group)
 
-        inspect_button = QPushButton("Inspect columns and CRS")
+        inspect_button = QPushButton("Inspect input")
         inspect_button.clicked.connect(self._inspect)
         layout.addWidget(inspect_button)
         self.results = QTextBrowser()
@@ -168,46 +171,67 @@ class YieldInputInspectionDialog(QDialog):
         profile_buttons.addStretch(1)
         mapping_layout.addLayout(profile_buttons)
         layout.addWidget(mapping_group, 2)
+        self.input_continue_button = QPushButton("Continue to Field Boundary")
+        self.input_continue_button.setObjectName("continueToBoundaryButton")
+        self.input_continue_button.setEnabled(False)
+        self.input_continue_button.clicked.connect(self._continue_to_boundary)
+        layout.addWidget(self.input_continue_button)
         return tab
 
-    def _build_audit_tab(self):
+    def _build_prepare_tab(self):
         tab = QWidget()
         layout = QVBoxLayout(tab)
         intro = QLabel(
-            "Create the vendor-neutral audit layer from the inspected source and the "
-            "reviewed mapping on the first tab. No observations are cleaned or deleted."
+            "Choose where to save the run. The plugin creates a new named folder and "
+            "prepares both the yield observations and field boundary without deleting "
+            "source records."
         )
         intro.setWordWrap(True)
         layout.addWidget(intro)
 
-        settings = QGroupBox("Canonical audit output")
+        settings = QGroupBox("Dataset name and output")
         form = QFormLayout(settings)
-        self.audit_output_folder = QLineEdit()
-        self.audit_output_folder.setPlaceholderText("Choose a new or empty run folder")
+        self.field_name = QLineEdit()
+        self.field_name.setPlaceholderText("Automatically suggested from the boundary")
+        self.output_parent_folder = QLineEdit()
+        self.output_parent_folder.setPlaceholderText(
+            "Choose a parent folder, such as Documents or Downloads"
+        )
         browse = QPushButton("Browse...")
-        browse.clicked.connect(lambda: self._browse_output_folder(self.audit_output_folder))
+        browse.clicked.connect(lambda: self._browse_output_folder(self.output_parent_folder))
         folder_row = QHBoxLayout()
-        folder_row.addWidget(self.audit_output_folder, 1)
+        folder_row.addWidget(self.output_parent_folder, 1)
         folder_row.addWidget(browse)
-        self.audit_output_crs = QLineEdit()
-        self.audit_output_crs.setPlaceholderText(
+        self.output_crs = QLineEdit()
+        self.output_crs.setPlaceholderText(
             "Optional, for example EPSG:32616; leave blank for automatic local CRS"
         )
-        form.addRow("Run folder", folder_row)
-        form.addRow("Analysis/output CRS", self.audit_output_crs)
+        self.run_name_preview = QLabel()
+        self.run_name_preview.setWordWrap(True)
+        form.addRow("Field / boundary name", self.field_name)
+        form.addRow("Save inside", folder_row)
+        form.addRow("Analysis/output CRS", self.output_crs)
+        form.addRow("New run folder", self.run_name_preview)
         layout.addWidget(settings)
 
-        run_button = QPushButton("Create canonical audit layer")
-        run_button.setObjectName("createCanonicalAuditButton")
-        run_button.clicked.connect(self._run_canonical_audit)
+        run_button = QPushButton("Create prepared yield dataset")
+        run_button.setObjectName("createPreparedDatasetButton")
+        run_button.clicked.connect(self._run_prepare_dataset)
         layout.addWidget(run_button)
-        self.audit_status = QTextBrowser()
-        self.audit_status.setHtml(
-            "<h3>Ready after input review</h3>"
-            "<p>Inspect the source and review its mapping on the first tab, then choose "
-            "a run folder here.</p>"
+        self.prepare_status = QTextBrowser()
+        self.prepare_status.setHtml(
+            "<h3>Complete steps 1 and 2 first</h3>"
+            "<p>The output folder and filenames will include the boundary name, crop, "
+            "and current date. If that run already exists, a numbered suffix is added.</p>"
         )
-        layout.addWidget(self.audit_status, 1)
+        layout.addWidget(self.prepare_status, 1)
+        for signal in (
+            self.field_name.textChanged,
+            self.output_parent_folder.textChanged,
+            self.crop_combo.currentIndexChanged,
+        ):
+            signal.connect(self._update_run_preview)
+        self._update_run_preview()
         return tab
 
     def _build_boundary_tab(self):
@@ -229,26 +253,31 @@ class YieldInputInspectionDialog(QDialog):
         self.boundary_mode.currentIndexChanged.connect(self._update_boundary_mode)
 
         self.boundary_layer_combo = QComboBox()
+        self.boundary_layer_combo.currentIndexChanged.connect(self._refresh_suggested_field_name)
         self.boundary_file_path = QLineEdit()
         self.boundary_file_path.setPlaceholderText(
             "Optional polygon file; used instead of the loaded-layer selection"
         )
         self.boundary_browse_button = QPushButton("Browse...")
         self.boundary_browse_button.clicked.connect(self._browse_boundary_file)
+        self.boundary_file_path.textChanged.connect(self._refresh_suggested_field_name)
         boundary_file_row = QHBoxLayout()
         boundary_file_row.addWidget(self.boundary_file_path, 1)
         boundary_file_row.addWidget(self.boundary_browse_button)
 
         self.use_inspected_source = QCheckBox("Use the source selected on Input & Mapping")
         self.use_inspected_source.setChecked(True)
+        self.use_inspected_source.toggled.connect(self._refresh_suggested_field_name)
         self.boundary_point_combo = QComboBox()
         self.boundary_point_combo.currentIndexChanged.connect(self._refresh_width_fields)
+        self.boundary_point_combo.currentIndexChanged.connect(self._refresh_suggested_field_name)
         self.boundary_point_file = QLineEdit()
         self.boundary_point_file.setPlaceholderText(
             "Optional QGIS-readable point file; used instead of the loaded layer"
         )
         self.point_browse_button = QPushButton("Browse...")
         self.point_browse_button.clicked.connect(self._browse_boundary_points)
+        self.boundary_point_file.textChanged.connect(self._refresh_suggested_field_name)
         point_file_row = QHBoxLayout()
         point_file_row.addWidget(self.boundary_point_file, 1)
         point_file_row.addWidget(self.point_browse_button)
@@ -272,18 +301,6 @@ class YieldInputInspectionDialog(QDialog):
         self.concavity.setDecimals(2)
         self.concavity.setValue(0.3)
 
-        self.boundary_output_folder = QLineEdit()
-        self.boundary_output_folder.setPlaceholderText(
-            "Choose a run folder, or leave blank to use the canonical-audit folder"
-        )
-        output_browse = QPushButton("Browse...")
-        output_browse.clicked.connect(
-            lambda: self._browse_output_folder(self.boundary_output_folder)
-        )
-        output_row = QHBoxLayout()
-        output_row.addWidget(self.boundary_output_folder, 1)
-        output_row.addWidget(output_browse)
-
         form.addRow("Boundary mode", self.boundary_mode)
         form.addRow("Loaded polygon layer", self.boundary_layer_combo)
         form.addRow("Or polygon file", boundary_file_row)
@@ -294,17 +311,17 @@ class YieldInputInspectionDialog(QDialog):
         form.addRow("Default swath width", self.default_width)
         form.addRow("Gap-closing distance", self.gap_closing)
         form.addRow("Fallback concavity", self.concavity)
-        form.addRow("Run folder", output_row)
         layout.addWidget(settings)
 
-        run_button = QPushButton("Prepare field boundary")
-        run_button.setObjectName("prepareFieldBoundaryButton")
-        run_button.clicked.connect(self._run_field_boundary)
-        layout.addWidget(run_button)
+        continue_button = QPushButton("Confirm boundary and continue")
+        continue_button.setObjectName("confirmFieldBoundaryButton")
+        continue_button.clicked.connect(self._confirm_boundary)
+        layout.addWidget(continue_button)
         self.boundary_status = QTextBrowser()
         self.boundary_status.setHtml(
-            "<h3>No boundary prepared</h3>"
-            "<p>Select an existing boundary or choose derivation settings above.</p>"
+            "<h3>Boundary not confirmed</h3>"
+            "<p>Select an existing boundary or choose derivation settings, then continue. "
+            "The boundary is written when the prepared dataset is created.</p>"
         )
         layout.addWidget(self.boundary_status, 1)
         self._update_boundary_mode(0)
@@ -354,6 +371,7 @@ class YieldInputInspectionDialog(QDialog):
             if selected in identifiers:
                 combo.setCurrentIndex(identifiers.index(selected))
         self._refresh_width_fields()
+        self._refresh_suggested_field_name()
 
     def _refresh_width_fields(self):
         previous = self.width_field.currentText().strip() or "swath_width_m"
@@ -390,6 +408,7 @@ class YieldInputInspectionDialog(QDialog):
             self.concavity,
         ):
             widget.setEnabled(not use_existing)
+        self._refresh_suggested_field_name()
 
     def _update_help(self, index):
         pages = (
@@ -397,26 +416,13 @@ class YieldInputInspectionDialog(QDialog):
             <h2>Input &amp; Mapping</h2>
             <ol>
               <li>Select a point layer already loaded in QGIS, or browse for a local file.</li>
-              <li>Click <b>Inspect columns and CRS</b>.</li>
+              <li>Click <b>Inspect input</b>.</li>
               <li>Confirm crop, units, source CRS, and every proposed column mapping.</li>
               <li>Save the mapping if you expect to use this export format again.</li>
-              <li>Continue with the <b>Canonical Audit</b> tab.</li>
+              <li>Click <b>Continue to Field Boundary</b>.</li>
             </ol>
             <p><b>Important:</b> Inspection is read-only. A low-confidence CRS or mapping
             must be reviewed before spatial calculations are run.</p>
-            """,
-            """
-            <h2>Canonical Audit</h2>
-            <ol>
-              <li>Complete Input &amp; Mapping first.</li>
-              <li>Choose a new or empty run folder.</li>
-              <li>Leave the analysis CRS blank to choose a suitable local projected CRS
-              automatically, or enter an explicit EPSG code.</li>
-              <li>Click <b>Create canonical audit layer</b>.</li>
-            </ol>
-            <p>The result preserves source attributes, adds normalized audit fields, and
-            records the reviewed mapping and CRS decisions. It does not clean or discard
-            observations.</p>
             """,
             """
             <h2>Field Boundary</h2>
@@ -424,11 +430,28 @@ class YieldInputInspectionDialog(QDialog):
             <p>Select one loaded polygon, or browse for a polygon file. A browsed file
             takes precedence over the loaded-layer selection.</p>
             <h3>Derived boundary</h3>
-            <p>Use projected canonical yield points when possible. Confirm the swath-width
+            <p>Use the inspected yield points when possible. Confirm the swath-width
             field and fallback width. The default display is Imperial; values are converted
             to meters for processing.</p>
+            <p>Click <b>Confirm boundary and continue</b>. The boundary will be written with
+            the prepared dataset in the final step.</p>
             <p><b>Always inspect a derived boundary on the map.</b> It represents harvested
             extent, not a legal or ownership boundary.</p>
+            """,
+            """
+            <h2>Prepare Dataset</h2>
+            <ol>
+              <li>Review the suggested field or boundary name.</li>
+              <li>Choose a parent output folder. The plugin creates a new run folder.</li>
+              <li>Leave the analysis CRS blank for automatic local projection, or enter an
+              explicit EPSG code.</li>
+              <li>Click <b>Create prepared yield dataset</b>.</li>
+            </ol>
+            <p>The folder and every main output file use the field name, crop, and date.
+            Existing runs are never overwritten; <code>_02</code>, <code>_03</code>, and so
+            on are added automatically.</p>
+            <p>The prepared observations preserve source attributes and add normalized
+            fields. This step prepares data for later cleaning; it does not discard records.</p>
             """,
         )
         self.help_panel.setHtml(pages[index] if 0 <= index < len(pages) else pages[0])
@@ -436,8 +459,8 @@ class YieldInputInspectionDialog(QDialog):
     def _browse_output_folder(self, target):
         folder = QFileDialog.getExistingDirectory(
             self,
-            "Select yield-cleaning run folder",
-            target.text().strip() or self.audit_output_folder.text().strip(),
+            "Select parent output folder",
+            target.text().strip(),
         )
         if folder:
             target.setText(folder)
@@ -477,15 +500,6 @@ class YieldInputInspectionDialog(QDialog):
         return None, str(path)
 
     @staticmethod
-    def _require_available_outputs(paths):
-        collisions = [str(path) for path in paths if path.exists()]
-        if collisions:
-            raise ValueError(
-                "The run folder already contains output files. Choose a new folder: "
-                + ", ".join(collisions)
-            )
-
-    @staticmethod
     def _gpkg_sink_uri(path, layer_name):
         """Build a Processing provider URI for a named GeoPackage layer."""
 
@@ -493,22 +507,135 @@ class YieldInputInspectionDialog(QDialog):
         safe_layer = str(layer_name).replace('"', '""')
         return f"ogr:dbname='{safe_path}' table=\"{safe_layer}\" (geom)"
 
-    def _run_canonical_audit(self):
+    def _suggested_field_name(self):
+        if self.boundary_mode.currentIndex() == 0:
+            boundary_file = self.boundary_file_path.text().strip()
+            if boundary_file:
+                return Path(boundary_file).stem
+            index = self.boundary_layer_combo.currentIndex()
+            if 0 <= index < self.boundary_layer_combo.count():
+                return self.boundary_layer_combo.itemText(index)
+        else:
+            point_file = self.boundary_point_file.text().strip()
+            if not self.use_inspected_source.isChecked() and point_file:
+                return Path(point_file).stem
+            if self.loaded_radio.isChecked():
+                index = self.layer_combo.currentIndex()
+                if 0 <= index < self.layer_combo.count():
+                    return self.layer_combo.itemText(index)
+            input_file = self.file_path.text().strip()
+            if input_file:
+                return Path(input_file).stem
+            index = self.boundary_point_combo.currentIndex()
+            if 0 <= index < self.boundary_point_combo.count():
+                return self.boundary_point_combo.itemText(index)
+        return "field"
+
+    def _refresh_suggested_field_name(self, *_args):
+        if not hasattr(self, "field_name"):
+            return
+        if not self.field_name.isModified() or not self.field_name.text().strip():
+            self.field_name.setText(self._suggested_field_name())
+            self.field_name.setModified(False)
+        self._update_run_preview()
+
+    def _update_run_preview(self, *_args):
+        if not hasattr(self, "run_name_preview"):
+            return
+        field_name = self.field_name.text().strip() or self._suggested_field_name()
+        stem = build_run_stem(field_name, str(self.crop_combo.currentData()))
+        parent_text = self.output_parent_folder.text().strip()
+        candidate = (
+            next_available_run_folder(Path(parent_text), stem) if parent_text else Path(stem)
+        )
+        self.run_name_preview.setText(str(candidate))
+
+    def _boundary_parameters(self):
+        existing_boundary = None
+        yield_points = None
+        if self.boundary_mode.currentIndex() == 0:
+            boundary_file = self.boundary_file_path.text().strip()
+            if boundary_file:
+                if not Path(boundary_file).is_file():
+                    raise ValueError("The selected boundary file does not exist")
+                existing_boundary = boundary_file
+            else:
+                index = self.boundary_layer_combo.currentIndex()
+                if not 0 <= index < len(self.boundary_layer_ids):
+                    raise ValueError("Select one loaded polygon or browse for a boundary file")
+                existing_boundary = QgsProject.instance().mapLayer(self.boundary_layer_ids[index])
+                if existing_boundary is None:
+                    raise ValueError("The selected boundary layer is no longer available")
+        elif self.use_inspected_source.isChecked():
+            yield_points, input_file = self._selected_input_source()
+            yield_points = yield_points or input_file
+        else:
+            point_file = self.boundary_point_file.text().strip()
+            if point_file:
+                if not Path(point_file).is_file():
+                    raise ValueError("The selected yield-point file does not exist")
+                yield_points = point_file
+            else:
+                index = self.boundary_point_combo.currentIndex()
+                if not 0 <= index < len(self.boundary_point_layer_ids):
+                    raise ValueError("Select yield points for boundary derivation")
+                yield_points = QgsProject.instance().mapLayer(self.boundary_point_layer_ids[index])
+                if yield_points is None:
+                    raise ValueError("The selected yield-point layer is no longer available")
+        return existing_boundary, yield_points
+
+    def _confirm_boundary(self):
+        try:
+            self._boundary_parameters()
+            self._refresh_suggested_field_name()
+            field_name = self.field_name.text().strip() or self._suggested_field_name()
+            self.field_name.setText(field_name)
+            detail = (
+                "The derived boundary will be added to the map for review after the "
+                "dataset is created."
+                if self.boundary_mode.currentIndex() == 1
+                else "The selected boundary will be validated when the dataset is created."
+            )
+            self.boundary_status.setHtml(
+                "<h3>Boundary settings confirmed</h3>"
+                f"<p><b>Output name:</b> {html.escape(field_name)}</p>"
+                f"<p>{html.escape(detail)}</p>"
+            )
+            self.tabs.setCurrentIndex(2)
+        except Exception as exc:
+            QMessageBox.warning(self, PLUGIN_NAME, str(exc))
+
+    def _continue_to_boundary(self):
         try:
             if not self.current_columns:
-                raise ValueError("Inspect the input and review its mapping first")
-            folder_text = self.audit_output_folder.text().strip()
-            if not folder_text:
-                raise ValueError("Choose a canonical-audit run folder")
-            folder = Path(folder_text)
-            folder.mkdir(parents=True, exist_ok=True)
-            mapping_path = folder / "column_mapping.json"
-            report_path = folder / "applied_column_mapping.json"
-            manifest_path = folder / "run_manifest.json"
-            geopackage_path = folder / "yield_cleaning_results.gpkg"
-            self._require_available_outputs(
-                (mapping_path, report_path, manifest_path, geopackage_path)
+                raise ValueError("Inspect the input before continuing")
+            profile = MappingProfile(
+                mapping=self._reviewed_mapping(),
+                crop_code=str(self.crop_combo.currentData()),
+                unit_profile=str(self.units_combo.currentData()),
+                source_crs=self.crs_text.text().strip() or None,
+                profile_name="guided_workflow_review",
             )
+            errors = profile.validate(self.current_columns)
+            if errors:
+                raise ValueError("Review the column mapping: " + "; ".join(errors))
+            self.tabs.setCurrentIndex(1)
+        except Exception as exc:
+            QMessageBox.warning(self, PLUGIN_NAME, str(exc))
+
+    def _run_prepare_dataset(self):
+        folder = None
+        try:
+            if not self.current_columns:
+                raise ValueError("Complete Input & Mapping before preparing the dataset")
+            existing_boundary, yield_points = self._boundary_parameters()
+            parent_text = self.output_parent_folder.text().strip()
+            if not parent_text:
+                raise ValueError("Choose a parent output folder")
+            parent = Path(parent_text)
+            parent.mkdir(parents=True, exist_ok=True)
+            field_name = self.field_name.text().strip() or self._suggested_field_name()
+            stem = build_run_stem(field_name, str(self.crop_combo.currentData()))
             profile = MappingProfile(
                 mapping=self._reviewed_mapping(),
                 crop_code=str(self.crop_combo.currentData()),
@@ -519,107 +646,29 @@ class YieldInputInspectionDialog(QDialog):
             errors = profile.validate(self.current_columns)
             if errors:
                 raise ValueError("; ".join(errors))
-            save_mapping_profile(profile, mapping_path)
             source, input_file = self._selected_input_source()
+            folder = next_available_run_folder(parent, stem)
+            folder.mkdir()
+            paths = run_file_paths(folder)
+            save_mapping_profile(profile, paths["mapping"])
             import processing
 
-            result = processing.run(
+            prepared_result = processing.run(
                 "yield_data_cleaner:create_canonical_audit",
                 {
                     "SOURCE": source,
                     "INPUT_FILE": input_file,
-                    "MAPPING_PROFILE": str(mapping_path),
+                    "MAPPING_PROFILE": str(paths["mapping"]),
                     "CROP": self.crop_combo.currentIndex(),
                     "UNIT_PROFILE": self.units_combo.currentIndex(),
                     "SOURCE_CRS": self.crs_text.text().strip() or None,
-                    "OUTPUT_CRS": self.audit_output_crs.text().strip() or None,
-                    "MAPPING_REPORT": str(report_path),
-                    "RUN_MANIFEST": str(manifest_path),
-                    "OUTPUT": self._gpkg_sink_uri(geopackage_path, "canonical_observations"),
+                    "OUTPUT_CRS": self.output_crs.text().strip() or None,
+                    "MAPPING_REPORT": str(paths["mapping_report"]),
+                    "RUN_MANIFEST": str(paths["manifest"]),
+                    "OUTPUT": self._gpkg_sink_uri(paths["geopackage"], "prepared_observations"),
                 },
             )
-            output_uri = str(result.get("OUTPUT") or geopackage_path)
-            layer = QgsVectorLayer(output_uri, "Canonical yield audit", "ogr")
-            if not layer.isValid():
-                layer = QgsVectorLayer(
-                    f"{geopackage_path}|layername=canonical_observations",
-                    "Canonical yield audit",
-                    "ogr",
-                )
-            if not layer.isValid():
-                raise ValueError("The audit completed, but QGIS could not open its output layer")
-            QgsProject.instance().addMapLayer(layer)
-            self.audit_status.setHtml(
-                "<h3>Canonical audit created</h3>"
-                f"<p><b>Layer:</b> {html.escape(layer.name())}</p>"
-                f"<p><b>Run folder:</b> {html.escape(str(folder))}</p>"
-                "<p>Source observations were preserved. Continue to Field Boundary.</p>"
-            )
-            if not self.boundary_output_folder.text().strip():
-                self.boundary_output_folder.setText(str(folder))
-            self._refresh_layers()
-        except Exception as exc:
-            QMessageBox.warning(self, PLUGIN_NAME, str(exc))
-
-    def _run_field_boundary(self):
-        try:
-            folder_text = (
-                self.boundary_output_folder.text().strip()
-                or self.audit_output_folder.text().strip()
-            )
-            if not folder_text:
-                raise ValueError("Choose a field-boundary run folder")
-            folder = Path(folder_text)
-            folder.mkdir(parents=True, exist_ok=True)
-            provenance_path = folder / "field_boundary_provenance.json"
-            geopackage_path = folder / "yield_cleaning_results.gpkg"
-            self._require_available_outputs((provenance_path,))
-            existing_output = QgsVectorLayer(
-                f"{geopackage_path}|layername=field_boundary",
-                "Existing field boundary",
-                "ogr",
-            )
-            if existing_output.isValid():
-                raise ValueError(
-                    "The run folder already contains a field_boundary layer. "
-                    "Choose a new folder."
-                )
-
-            existing_boundary = None
-            yield_points = None
-            if self.boundary_mode.currentIndex() == 0:
-                boundary_file = self.boundary_file_path.text().strip()
-                if boundary_file:
-                    if not Path(boundary_file).is_file():
-                        raise ValueError("The selected boundary file does not exist")
-                    existing_boundary = boundary_file
-                else:
-                    index = self.boundary_layer_combo.currentIndex()
-                    if not 0 <= index < len(self.boundary_layer_ids):
-                        raise ValueError("Select one loaded polygon or browse for a boundary file")
-                    existing_boundary = QgsProject.instance().mapLayer(
-                        self.boundary_layer_ids[index]
-                    )
-            elif self.use_inspected_source.isChecked():
-                yield_points, input_file = self._selected_input_source()
-                yield_points = yield_points or input_file
-            else:
-                point_file = self.boundary_point_file.text().strip()
-                if point_file:
-                    if not Path(point_file).is_file():
-                        raise ValueError("The selected yield-point file does not exist")
-                    yield_points = point_file
-                else:
-                    index = self.boundary_point_combo.currentIndex()
-                    if not 0 <= index < len(self.boundary_point_layer_ids):
-                        raise ValueError("Select yield points for boundary derivation")
-                    yield_points = QgsProject.instance().mapLayer(
-                        self.boundary_point_layer_ids[index]
-                    )
-
-            import processing
-
-            result = processing.run(
+            boundary_result = processing.run(
                 "yield_data_cleaner:prepare_field_boundary",
                 {
                     "MODE": self.boundary_mode.currentIndex(),
@@ -629,35 +678,51 @@ class YieldInputInspectionDialog(QDialog):
                     "DEFAULT_WIDTH": self.default_width.value() * 0.3048,
                     "GAP_CLOSING": self.gap_closing.value() * 0.3048,
                     "CONCAVITY": self.concavity.value(),
-                    "PROVENANCE": str(provenance_path),
-                    "OUTPUT": self._gpkg_sink_uri(geopackage_path, "field_boundary"),
+                    "PROVENANCE": str(paths["boundary_provenance"]),
+                    "OUTPUT": self._gpkg_sink_uri(paths["geopackage"], "field_boundary"),
                 },
             )
-            output_uri = str(result.get("OUTPUT") or geopackage_path)
-            layer = QgsVectorLayer(output_uri, "Prepared field boundary", "ogr")
-            if not layer.isValid():
-                layer = QgsVectorLayer(
-                    f"{geopackage_path}|layername=field_boundary",
+
+            prepared_uri = str(prepared_result.get("OUTPUT") or paths["geopackage"])
+            prepared_layer = QgsVectorLayer(prepared_uri, "Prepared yield observations", "ogr")
+            if not prepared_layer.isValid():
+                prepared_layer = QgsVectorLayer(
+                    f"{paths['geopackage']}|layername=prepared_observations",
+                    "Prepared yield observations",
+                    "ogr",
+                )
+            boundary_uri = str(boundary_result.get("OUTPUT") or paths["geopackage"])
+            boundary_layer = QgsVectorLayer(boundary_uri, "Prepared field boundary", "ogr")
+            if not boundary_layer.isValid():
+                boundary_layer = QgsVectorLayer(
+                    f"{paths['geopackage']}|layername=field_boundary",
                     "Prepared field boundary",
                     "ogr",
                 )
-            if not layer.isValid():
-                raise ValueError("Boundary processing completed, but QGIS could not open it")
-            QgsProject.instance().addMapLayer(layer)
+            if not prepared_layer.isValid() or not boundary_layer.isValid():
+                raise ValueError("The run completed, but QGIS could not open an output layer")
+            QgsProject.instance().addMapLayer(boundary_layer)
+            QgsProject.instance().addMapLayer(prepared_layer)
             review_text = (
-                "Visually review this derived operational boundary before accepting it."
+                "Review the derived field boundary on the map before using it."
                 if self.boundary_mode.currentIndex() == 1
-                else "The existing boundary was validated and prepared."
+                else "The selected field boundary was validated and included."
             )
-            self.boundary_status.setHtml(
-                "<h3>Field boundary prepared</h3>"
-                f"<p><b>Layer:</b> {html.escape(layer.name())}</p>"
+            self.prepare_status.setHtml(
+                "<h3>Prepared dataset created</h3>"
                 f"<p><b>Run folder:</b> {html.escape(str(folder))}</p>"
+                f"<p><b>Yield data:</b> {html.escape(paths['geopackage'].name)}</p>"
                 f"<p>{html.escape(review_text)}</p>"
+                "<p>No source observations were deleted.</p>"
             )
-            self._refresh_layers()
+            self._update_run_preview()
         except Exception as exc:
-            QMessageBox.warning(self, PLUGIN_NAME, str(exc))
+            partial = (
+                f"\n\nA partial run folder was retained for diagnostics:\n{folder}"
+                if folder is not None and folder.exists()
+                else ""
+            )
+            QMessageBox.warning(self, PLUGIN_NAME, f"{exc}{partial}")
 
     def _browse(self):
         path, _ = QFileDialog.getOpenFileName(
@@ -770,6 +835,7 @@ class YieldInputInspectionDialog(QDialog):
             self.crs_text.setText(self.current_crs_authid)
         self._populate_mapping_table()
         self._refresh_width_fields()
+        self.input_continue_button.setEnabled(True)
 
     def _populate_mapping_table(self, selected_mapping=None):
         selected_mapping = selected_mapping or {

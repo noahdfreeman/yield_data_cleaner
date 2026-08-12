@@ -55,7 +55,7 @@ class ClassifyByBoundaryAlgorithm(QgsProcessingAlgorithm):
     def shortHelpString(self):
         return self.tr(
             "Flag point observations as inside or outside one accepted field "
-            "boundary. All observations are retained in the audit output; inside "
+            "boundary. All observations are retained in the prepared output; inside "
             "and outside subsets are additional outputs. Tolerance is recorded and "
             "applied in the projected point-layer CRS."
         )
