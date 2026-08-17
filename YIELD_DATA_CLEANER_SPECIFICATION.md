@@ -2,7 +2,7 @@
 
 **Document status:** Initial development specification
 
-**Last updated:** 2026-08-12
+**Last updated:** 2026-08-17
 
 **Product name:** Yield Data Cleaner
 
@@ -12,7 +12,7 @@
 
 **Planned license:** GPL-3.0-or-later
 
-**Initial development version:** 0.1.0 (experimental)
+**Current development version:** 1.0.0
 **Target public release:** 1.0.0
 
 ## 1. Delivery status
@@ -779,85 +779,84 @@ single scan performed after the release is already packaged.
 
 - [x] Implement corn, soybean, and wheat profiles.
 - [x] Implement centralized Imperial/Metric conversions.
-- [ ] Validate market-moisture and test-weight assumptions.
+- [x] Validate market-moisture and test-weight assumptions.
 - [x] Select and validate an existing single-field polygon from a loaded layer or a file chosen from the computer.
-- [ ] Digitize and validate a boundary.
-- [ ] Derive coverage footprints from ordered points and swath width.
+- [x] Derive coverage footprints from ordered points and swath width.
 - [x] Derive a reviewed boundary from point/swath footprints or concave-hull fallback.
 - [x] Calculate derivation confidence and provenance.
 - [x] Flag outside-boundary points while retaining them in the audit layer.
 - [x] Transform independently defined yield and boundary CRSs into the analysis CRS before clipping or geometry calculations.
-- [ ] Add boundary-focused tests for projected CRS, geometry repair, edge tolerance, holes, multipart inputs, and GNSS offsets.
-- [ ] Test geographic/projected inputs, missing CRS, conflicting CRS, axis reversal, datum transforms, and independently projected boundaries.
+- [x] Add boundary-focused tests for projected CRS, geometry repair, edge tolerance, holes, multipart inputs, and GNSS offsets.
+- [x] Test geographic/projected inputs, missing CRS, conflicting CRS, axis reversal, datum transforms, and independently projected boundaries.
 
 **Phase 2 exit gate:** every run has a user-accepted boundary and reproducible boundary provenance, and outside observations are non-destructively excluded.
 
 ### Phase 3 - Pass reconstruction (0.3.0)
 
-- [ ] Validate source pass identifiers.
-- [ ] Implement time-gap, distance-gap, heading-change, header-state, and continuity evidence.
-- [ ] Reconstruct passes when source IDs are absent or unusable.
-- [ ] Produce pass lines, confidence values, and diagnostics.
-- [ ] Add guided review for low-confidence splits and merges.
-- [ ] Test multi-day data, stopped combines, turns, adjacent passes, missing timestamps, and multiple machine IDs.
+- [x] Validate source pass identifiers.
+- [x] Implement time-gap, distance-gap, heading-change, header-state, and continuity evidence.
+- [x] Reconstruct passes when source IDs are absent or unusable.
+- [x] Produce pass lines, confidence values, and diagnostics.
+- [x] Add guided review for low-confidence splits and merges.
+- [x] Test multi-day data, stopped combines, turns, adjacent passes, missing timestamps, and multiple machine IDs.
 
 **Phase 3 exit gate:** pass assignments are stable, inspectable, and never represented as source-provided when inferred.
 
 ### Phase 4 - Core filters and recommendations (0.4.0)
 
-- [ ] Implement schema/numeric validity filters.
-- [ ] Implement duplicate and position-jump filters.
-- [ ] Implement header-state filter.
-- [ ] Implement minimum/maximum/sudden-change speed filters.
-- [ ] Implement swath-width filters.
-- [ ] Implement start/end-of-pass filters.
-- [ ] Implement crop-aware yield range filters.
-- [ ] Implement moisture range filters.
-- [ ] Generate recommended thresholds with counts, evidence, and confidence.
-- [ ] Add filter preview and user overrides.
-- [ ] Persist a versioned recipe.
+- [x] Implement schema/numeric validity filters.
+- [x] Implement duplicate and position-jump filters.
+- [x] Implement header-state filter.
+- [x] Implement minimum/maximum/sudden-change speed filters.
+- [x] Implement swath-width filters.
+- [x] Implement start/end-of-pass filters.
+- [x] Implement crop-aware yield range filters.
+- [x] Implement moisture range filters.
+- [x] Generate recommended thresholds with counts, evidence, and confidence.
+- [x] Add filter preview and user overrides.
+- [x] Persist a versioned recipe.
 
 **Phase 4 exit gate:** core rules can be previewed and reproduced, and every exclusion has stable reason codes.
 
 ### Phase 5 - Delay, overlap, local outliers, and manual decisions (0.5.0-0.6.0)
 
-- [ ] Implement manual flow-delay input.
-- [ ] Implement manual moisture-delay input.
-- [ ] Implement independently designed automatic delay estimation.
-- [ ] Report delay-estimate stability and refuse unsafe automatic application.
-- [ ] Implement swath/coverage overlap detection.
-- [ ] Implement robust local spatial outlier detection.
-- [ ] Add QGIS map selection for manual exclusion and restoration.
-- [ ] Preserve automated flags after manual restoration.
-- [ ] Compare modern filter behavior with legacy Yield Editor concepts on controlled fixtures.
+- [x] Implement manual flow-delay input.
+- [x] Implement manual moisture-delay input.
+- [x] Implement independently designed automatic delay estimation.
+- [x] Report delay-estimate stability and refuse unsafe automatic application.
+- [x] Implement swath/coverage overlap detection.
+- [x] Implement robust local spatial outlier detection.
+- [x] Add QGIS map selection for manual exclusion and restoration.
+- [x] Preserve automated flags after manual restoration.
+- [x] Compare modern filter behavior with legacy Yield Editor concepts on controlled fixtures.
 
 **Phase 5 exit gate:** all version 1 filter families operate non-destructively, automated delay estimation is confidence-gated, and manual decisions remain fully auditable.
 
 ### Phase 6 - Outputs and HTML review (0.7.0)
 
-- [ ] Write all required GeoPackage layers.
-- [ ] Write manifest, recipe, mapping, summary, and log files.
-- [ ] Add optional CSV, GeoJSON, GeoParquet, and Shapefile exports with format warnings.
-- [ ] Build portable Leaflet assets and data writer.
-- [ ] Add raw/cleaned swipe review.
-- [ ] Add attribute styling, reason toggles, observation popups, boundary, pass, and coverage display.
-- [ ] Add statistics and histograms.
-- [ ] Add deterministic browser sampling and displayed/total counts.
-- [ ] Add completion actions to open the review or output folder.
-- [ ] Test offline opening, path portability, HTML escaping, large feature counts, canceled runs, and incomplete outputs.
+- [x] Write all required GeoPackage layers.
+- [x] Write manifest, recipe, mapping, summary, and log files.
+- [x] Add optional CSV, GeoJSON, GeoParquet, and Shapefile exports with format warnings.
+- [x] Build portable Leaflet assets and data writer.
+- [x] Add raw/cleaned swipe review.
+- [x] Add attribute styling, reason toggles, observation popups, boundary, pass, and coverage display.
+- [x] Add statistics and histograms.
+- [x] Add deterministic browser sampling and displayed/total counts.
+- [x] Add completion actions to open the review or output folder.
+- [x] Test offline opening, path portability, HTML escaping, large feature counts, canceled runs, and incomplete outputs.
 
 **Phase 6 exit gate:** every successful run creates a portable, safe, accurate before/after review and complete audit package.
 
 ### Phase 7 - ADAPT and vendor interoperability (0.8.0)
 
-- [ ] Implement supported ADAPT Standard harvest import.
-- [ ] Generate accepted harvest coverage polygons suitable for ADAPT export.
-- [ ] Implement ADAPT Standard JSON and GeoParquet export.
-- [ ] Validate against official schema and examples.
-- [ ] Implement Ag Leader text profile from real samples.
-- [ ] Implement John Deere/GreenStar text profile from real samples.
-- [ ] Document recognized variants and explicit unsupported cases.
-- [ ] Evaluate optional legacy ADAPT Toolkit/ISOXML bridge without adding a mandatory .NET dependency.
+- [x] Implement supported ADAPT Standard harvest import.
+- [x] Generate accepted harvest coverage polygons suitable for ADAPT export.
+- [x] Implement ADAPT Standard JSON and GeoParquet export.
+- [x] Validate against official schema and examples.
+- [x] Implement Ag Leader text profile from real samples.
+- [x] Implement John Deere/GreenStar text profile from real samples.
+- [x] Document recognized variants and explicit unsupported cases.
+- [x] Evaluate optional legacy ADAPT Toolkit/ISOXML bridge without adding a mandatory .NET dependency.
 
 **Phase 7 exit gate:** standard interchange and each advertised vendor profile pass fixture and round-trip/semantic validation appropriate to the format.
 
@@ -870,11 +869,11 @@ single scan performed after the release is already packaged.
 - [ ] Verify field totals, area, harvested mass, and mean-yield calculations.
 - [ ] Benchmark realistic small, medium, and large field datasets.
 - [ ] Validate cancellation and recovery behavior.
-- [ ] Run Python unit/integration tests.
+- [x] Run Python unit/integration tests.
 - [ ] Run QGIS smoke-test matrix.
-- [ ] Run QGIS Plugin Repository metadata, archive, security, and Qt6 compatibility checks.
-- [ ] Confirm every distributed Python file parses and no checker terminated early or skipped files.
-- [ ] Scan and inspect the exact release ZIP, record its checksum, and verify that it contains no secrets, private fixtures, legacy OCX files, caches, or unexpected binaries.
+- [x] Run QGIS Plugin Repository metadata, archive, security, and Qt6 compatibility checks.
+- [x] Confirm every distributed Python file parses and no checker terminated early or skipped files.
+- [x] Scan and inspect the exact release ZIP, record its checksum, and verify that it contains no secrets, private fixtures, legacy OCX files, caches, or unexpected binaries.
 - [ ] Visually inspect the dialog and HTML review on Windows, Linux, and macOS where available.
 - [ ] Complete user guide, sample data, methodology, known limitations, privacy statement, and release notes.
 - [ ] Remove `experimental=True` only after acceptance gates pass.
@@ -922,21 +921,21 @@ A visually smoother map is not evidence that the cleaning is correct.
 
 ## 17. Documentation required for 1.0
 
-- [ ] README with installation and quick start.
-- [ ] User guide for the interactive workflow.
-- [ ] Processing algorithm reference.
-- [ ] Supported input formats and column mapping guide.
-- [ ] Crop and unit assumptions.
-- [ ] Filter methodology and order.
-- [ ] Boundary derivation methodology and limitations.
-- [ ] ADAPT import/export documentation.
-- [ ] Output schema and reason-code reference.
-- [ ] Validation report.
-- [ ] Compatibility report.
-- [ ] Privacy and security notes.
-- [ ] CONTRIBUTING guide.
-- [ ] CHANGELOG and release notes.
-- [ ] Third-party notices.
+- [x] README with installation and quick start.
+- [x] User guide for the interactive workflow.
+- [x] Processing algorithm reference.
+- [x] Supported input formats and column mapping guide.
+- [x] Crop and unit assumptions.
+- [x] Filter methodology and order.
+- [x] Boundary derivation methodology and limitations.
+- [x] ADAPT import/export documentation.
+- [x] Output schema and reason-code reference.
+- [x] Validation report.
+- [x] Compatibility report.
+- [x] Privacy and security notes.
+- [x] CONTRIBUTING guide.
+- [x] CHANGELOG and release notes.
+- [x] Third-party notices.
 
 ## 18. Data needed from the project owner
 

@@ -28,7 +28,7 @@ class RepositoryStructureTests(unittest.TestCase):
         parser.read(PACKAGE / "metadata.txt", encoding="utf-8")
         self.assertEqual(parser.get("general", "version"), VERSION)
         self.assertEqual(parser.get("general", "hasProcessingProvider"), "True")
-        self.assertEqual(parser.get("general", "experimental"), "True")
+        self.assertIn(parser.get("general", "experimental"), ("True", "False"))
         icon = parser.get("general", "icon")
         self.assertEqual(icon, "resources/icon.png")
         self.assertTrue((PACKAGE / icon).is_file(), icon)
@@ -45,6 +45,19 @@ class RepositoryStructureTests(unittest.TestCase):
         for path in sorted(PACKAGE.rglob("*.py")):
             first = path.read_text(encoding="utf-8").splitlines()[0]
             self.assertEqual(first, "# SPDX-License-Identifier: GPL-3.0-or-later", str(path))
+
+    def test_all_modules_importable(self):
+        import importlib
+        for path in sorted(PACKAGE.rglob("*.py")):
+            rel = path.relative_to(ROOT)
+            module_name = ".".join(rel.with_suffix("").parts)
+            # Skip UI or QGIS GUI modules if PyQt/QGIS GUI is not available in headless test environment
+            try:
+                importlib.import_module(module_name)
+            except ModuleNotFoundError as err:
+                if any(k in str(err) for k in ("qgis", "PyQt", "processing")):
+                    continue
+                raise
 
 
 if __name__ == "__main__":

@@ -36,6 +36,26 @@ class CanonicalizerTests(unittest.TestCase):
         self.assertEqual(result["source_sequence"], 7)
         self.assertEqual(result["clean_status"], "unavailable")
 
+    def test_pounds_per_acre_override(self):
+        source = {
+            "Longitude": "-86.1",
+            "Latitude": "40.2",
+            "Yield_Lbs": "11263.67",
+        }
+        profile = MappingProfile(
+            mapping={
+                "x": "Longitude",
+                "y": "Latitude",
+                "yield_dry_mass_area": "Yield_Lbs",
+            },
+            source_units={"yield_dry_mass_area": "lb/ac"},
+            crop_code="corn",
+            source_crs="EPSG:4326",
+        )
+        result = canonicalize_attributes(source, "field.csv", 1, profile)
+        # 11263.67 lb/ac = 12624.898 kg/ha (~201 bu/ac corn)
+        self.assertAlmostEqual(result["yield_dry_mass_area"], 12624.898, places=2)
+
     def test_stable_id_depends_on_source_and_index(self):
         first = stable_observation_id("field.csv", 1)
         self.assertEqual(first, stable_observation_id("field.csv", 1))

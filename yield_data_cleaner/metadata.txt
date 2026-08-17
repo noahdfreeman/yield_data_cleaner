@@ -1,19 +1,19 @@
 [general]
 name=Yield Data Cleaner
 description=Inspect, map, review, and non-destructively clean combine yield-monitor data one field at a time.
-version=0.1.0
+version=1.0.0
 qgisMinimumVersion=3.28
 qgisMaximumVersion=4.99
 author=Noah Freeman
 email=noahdfreeman@users.noreply.github.com
-about=An experimental open-source QGIS plugin for recognizing yield-monitor inputs, reviewing column mappings and coordinate reference systems, and preparing an auditable one-field cleaning workflow inspired by USDA-ARS Yield Editor concepts. Version 0.1.0 is a development foundation and is not approved for agronomic decisions.
+about=An open-source QGIS plugin for recognizing yield-monitor inputs, reviewing column mappings and coordinate reference systems, reconstructing harvest passes, executing non-destructive cleaning filters, generating portable Leaflet HTML reviews, and interoperating with AgGateway ADAPT Standard and vendor presets. Version 1.0.0 represents the initial public release with full guided workflow, in-modal vertex boundary editing, customizable cleaning recipes, and auditable GeoPackage storage.
 category=Vector
 icon=resources/icon.png
-experimental=True
+experimental=False
 deprecated=False
 hasProcessingProvider=True
 homepage=https://github.com/noahdfreeman/yield_data_cleaner
 repository=https://github.com/noahdfreeman/yield_data_cleaner
 tracker=https://github.com/noahdfreeman/yield_data_cleaner/issues
 tags=agriculture,yield monitor,yield cleaning,precision agriculture,processing
-changelog=0.1.0 - Initial experimental foundation with guided dataset preparation, reusable mappings, field boundaries, unit normalization, and CRS recognition/transformation.
+changelog=1.0.0 - Initial public release of Yield Data Cleaner for QGIS.

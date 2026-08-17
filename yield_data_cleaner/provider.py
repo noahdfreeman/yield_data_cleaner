@@ -5,9 +5,12 @@ from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import QgsProcessingProvider
 
 from .algorithms.classify_by_boundary import ClassifyByBoundaryAlgorithm
+from .algorithms.clean_yield_data import CleanYieldDataAlgorithm
 from .algorithms.create_canonical_audit import CreateCanonicalAuditAlgorithm
+from .algorithms.export_adapt import ExportAdaptAlgorithm
 from .algorithms.inspect_yield_columns import InspectYieldDataAlgorithm
 from .algorithms.prepare_field_boundary import PrepareFieldBoundaryAlgorithm
+from .algorithms.reconstruct_passes import ReconstructPassesAlgorithm
 from .core.settings import PROVIDER_ID, PROVIDER_NAME
 
 
@@ -26,3 +29,6 @@ class YieldDataCleanerProvider(QgsProcessingProvider):
         self.addAlgorithm(CreateCanonicalAuditAlgorithm())
         self.addAlgorithm(PrepareFieldBoundaryAlgorithm())
         self.addAlgorithm(ClassifyByBoundaryAlgorithm())
+        self.addAlgorithm(ReconstructPassesAlgorithm())
+        self.addAlgorithm(CleanYieldDataAlgorithm())
+        self.addAlgorithm(ExportAdaptAlgorithm())

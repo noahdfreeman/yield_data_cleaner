@@ -47,6 +47,10 @@ def m_s_to_mph(value: float) -> float:
     return _finite(value, "m/s") * 3600.0 / MILE_TO_METER
 
 
+mph_to_m_per_s = mph_to_m_s
+m_per_s_to_mph = m_s_to_mph
+
+
 def bushels_per_acre_to_kg_per_hectare(value: float, test_weight_lb_per_bushel: float) -> float:
     bushels = _finite(value, "bushels per acre")
     test_weight = _finite(test_weight_lb_per_bushel, "test weight")
@@ -61,6 +65,14 @@ def kg_per_hectare_to_bushels_per_acre(value: float, test_weight_lb_per_bushel: 
     if test_weight <= 0:
         raise ValueError("test weight must be greater than zero")
     return kilograms * ACRE_TO_HECTARE / (test_weight * POUND_TO_KILOGRAM)
+
+
+def pounds_per_acre_to_kg_per_hectare(value: float) -> float:
+    return _finite(value, "pounds per acre") * POUND_TO_KILOGRAM / ACRE_TO_HECTARE
+
+
+def kg_per_hectare_to_pounds_per_acre(value: float) -> float:
+    return _finite(value, "kg per hectare") * ACRE_TO_HECTARE / POUND_TO_KILOGRAM
 
 
 def adjust_yield_for_moisture(

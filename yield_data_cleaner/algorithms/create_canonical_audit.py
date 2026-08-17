@@ -211,24 +211,25 @@ class CreateCanonicalAuditAlgorithm(QgsProcessingAlgorithm):
     @classmethod
     def _output_fields(cls, source_fields):
         output = QgsFields()
-        canonical_names = {field.name() for field in cls._canonical_qgis_fields()}
-        used: set[str] = set()
+        canonical_names_lower = {field.name.lower() for field in CANONICAL_FIELDS} | {"geometry_original"}
+        used_lower: set[str] = set()
         source_names: dict[str, str] = {}
         for source_field in source_fields:
             original = source_field.name()
-            candidate = f"src_{original}" if original in canonical_names else original
+            candidate = f"src_{original}" if original.lower() in canonical_names_lower else original
             base = candidate
             suffix = 2
-            while candidate in used or candidate in canonical_names:
+            while candidate.lower() in used_lower or candidate.lower() in canonical_names_lower:
                 candidate = f"{base}_{suffix}"
                 suffix += 1
             copied = QgsField(source_field)
             copied.setName(candidate)
             output.append(copied)
             source_names[original] = candidate
-            used.add(candidate)
+            used_lower.add(candidate.lower())
         for field in cls._canonical_qgis_fields():
             output.append(field)
+            used_lower.add(field.name().lower())
         output.append(QgsField("geometry_original", qgis_field_type("string")))
         return output, source_names
 

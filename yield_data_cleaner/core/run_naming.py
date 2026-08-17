@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 
@@ -22,16 +22,24 @@ def safe_name(value: str | None, fallback: str = "field") -> str:
 def build_run_stem(
     boundary_name: str | None,
     crop: str | None,
-    run_date: date | None = None,
+    run_date: date | datetime | None = None,
+    include_time: bool = False,
 ) -> str:
-    """Combine field/boundary name, crop, and date into one run identifier."""
+    """Combine field/boundary name, crop, and date/timestamp into one run identifier."""
 
-    day = run_date or date.today()
+    if run_date is None:
+        now = datetime.now()
+        date_str = now.strftime("%Y-%m-%d_%H%M%S") if include_time else now.strftime("%Y-%m-%d")
+    elif isinstance(run_date, datetime):
+        date_str = run_date.strftime("%Y-%m-%d_%H%M%S") if include_time else run_date.strftime("%Y-%m-%d")
+    else:
+        date_str = run_date.isoformat()
+
     return "_".join(
         (
             safe_name(boundary_name),
             safe_name(crop, "crop").lower(),
-            day.isoformat(),
+            date_str,
         )
     )
 

@@ -7,8 +7,10 @@ from yield_data_cleaner.core.units import (
     adjust_yield_for_moisture,
     bushels_per_acre_to_kg_per_hectare,
     kg_per_hectare_to_bushels_per_acre,
+    kg_per_hectare_to_pounds_per_acre,
     m_s_to_mph,
     mph_to_m_s,
+    pounds_per_acre_to_kg_per_hectare,
 )
 
 
@@ -22,6 +24,11 @@ class UnitConversionTests(unittest.TestCase):
         original = 215.75
         metric = bushels_per_acre_to_kg_per_hectare(original, 56.0)
         self.assertAlmostEqual(kg_per_hectare_to_bushels_per_acre(metric, 56.0), original, places=9)
+
+    def test_pounds_per_acre_round_trip(self):
+        original = 11263.67
+        metric = pounds_per_acre_to_kg_per_hectare(original)
+        self.assertAlmostEqual(kg_per_hectare_to_pounds_per_acre(metric), original, places=9)
 
     def test_speed_round_trip(self):
         self.assertAlmostEqual(m_s_to_mph(mph_to_m_s(4.8)), 4.8, places=12)

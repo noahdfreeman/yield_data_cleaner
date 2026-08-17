@@ -2,7 +2,7 @@
 
 import tempfile
 import unittest
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from yield_data_cleaner.core.run_naming import (
@@ -18,6 +18,13 @@ class RunNamingTests(unittest.TestCase):
         self.assertEqual(
             build_run_stem("Beard BND", "Corn", date(2026, 8, 12)),
             "Beard_BND_corn_2026-08-12",
+        )
+
+    def test_stem_with_time(self):
+        dt = datetime(2026, 8, 17, 9, 2, 11)
+        self.assertEqual(
+            build_run_stem("Beard BND", "Corn", dt, include_time=True),
+            "Beard_BND_corn_2026-08-17_090211",
         )
 
     def test_unsafe_name_is_sanitized(self):

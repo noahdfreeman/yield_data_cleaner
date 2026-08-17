@@ -41,6 +41,25 @@ class ColumnDetectionTests(unittest.TestCase):
         suggestions = detect_columns(["Time"], [{"Time": "12:00:00"}])
         self.assertEqual(len([item for item in suggestions if item.source_column == "Time"]), 1)
 
+    def test_volumetric_yield_preferred_over_mass_rate(self):
+        columns = ["Yld_Mass_D", "Yld_Vol_Dr", "Speed_mph_", "Swth_Wdth_"]
+        rows = [
+            {
+                "Yld_Mass_D": 8760.08,
+                "Yld_Vol_Dr": 143.17,
+                "Speed_mph_": 2.65,
+                "Swth_Wdth_": 30.0,
+            },
+            {
+                "Yld_Mass_D": 10626.33,
+                "Yld_Vol_Dr": 173.68,
+                "Speed_mph_": 2.70,
+                "Swth_Wdth_": 30.0,
+            },
+        ]
+        mapped = suggestions_by_field(detect_columns(columns, rows))
+        self.assertEqual(mapped["yield_dry_mass_area"].source_column, "Yld_Vol_Dr")
+
 
 if __name__ == "__main__":
     unittest.main()

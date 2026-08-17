@@ -112,3 +112,59 @@ def validate_boundary_geometry(
     if candidate.area() < minimum_area_m2:
         raise ValueError(f"boundary area is smaller than {minimum_area_m2:g} square meters")
     return candidate, repaired
+
+
+def fill_polygon_holes(geometry: QgsGeometry, max_hole_area: float = 0.0) -> QgsGeometry:
+    """Remove interior rings (holes) from polygon / multipolygon geometry.
+    
+    If max_hole_area <= 0, all interior holes are removed.
+    """
+    if geometry is None or geometry.isNull() or geometry.isEmpty():
+        return geometry
+
+    # Approach 1: Reconstruct directly from exterior boundary rings
+    try:
+        if geometry.isMultipart():
+            multi_poly = geometry.asMultiPolygon()
+            if multi_poly:
+                exterior_only = []
+                for part in multi_poly:
+                    if part and len(part) > 0:
+                        exterior_only.append([part[0]])
+                if exterior_only:
+                    res = QgsGeometry.fromMultiPolygonXY(exterior_only)
+                    if res and not res.isEmpty() and res.isGeosValid():
+                        return res
+        else:
+            poly = geometry.asPolygon()
+            if poly and len(poly) > 0:
+                res = QgsGeometry.fromPolygonXY([poly[0]])
+                if res and not res.isEmpty() and res.isGeosValid():
+                    return res
+    except Exception:
+        pass
+
+    # Approach 2: removeInteriorRings on copy
+    try:
+        candidate = QgsGeometry(geometry)
+        if hasattr(candidate, "removeInteriorRings"):
+            candidate.removeInteriorRings(-1.0)
+            if not candidate.isEmpty() and candidate.isGeosValid():
+                return candidate
+    except Exception:
+        pass
+
+    return geometry
+
+
+def simplify_boundary_geometry(geometry: QgsGeometry, tolerance: float = 1.0) -> QgsGeometry:
+    """Simplify polygon geometry to smooth contours and reduce vertex density."""
+    if geometry is None or geometry.isNull() or geometry.isEmpty():
+        return geometry
+    try:
+        simplified = geometry.simplify(tolerance)
+        if simplified and not simplified.isEmpty() and simplified.isGeosValid():
+            return simplified
+    except Exception:
+        pass
+    return geometry

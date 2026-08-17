@@ -113,7 +113,7 @@ def validate_observation(observation: CanonicalObservation) -> list[str]:
 
 
 def source_attribute_collisions(attributes: Mapping[str, Any]) -> tuple[str, ...]:
-    """Return source fields that collide with canonical names."""
+    """Return source fields that collide with canonical names (case-insensitive)."""
 
-    canonical = set(CANONICAL_FIELD_NAMES)
-    return tuple(sorted(str(name) for name in attributes if str(name) in canonical))
+    canonical_lower = {name.lower() for name in CANONICAL_FIELD_NAMES}
+    return tuple(sorted(str(name) for name in attributes if str(name).lower() in canonical_lower))

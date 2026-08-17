@@ -37,8 +37,11 @@ class YieldDataCleanerPlugin:
         self.iface.addToolBarIcon(self.action)
 
     def open_dialog(self):
-        self.dialog = YieldInputInspectionDialog(self.iface)
-        self.dialog.exec()
+        if self.dialog is None:
+            self.dialog = YieldInputInspectionDialog(self.iface)
+        self.dialog.show()
+        self.dialog.raise_()
+        self.dialog.activateWindow()
 
     def unload(self):
         if self.dialog is not None:

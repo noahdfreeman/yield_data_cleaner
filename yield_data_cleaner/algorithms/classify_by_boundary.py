@@ -109,7 +109,8 @@ class ClassifyByBoundaryAlgorithm(QgsProcessingAlgorithm):
     @staticmethod
     def _output_fields(source_fields):
         fields = QgsFields(source_fields)
-        if fields.indexOf("boundary_status") < 0:
+        existing = {f.name().lower() for f in fields}
+        if "boundary_status" not in existing:
             fields.append(QgsField("boundary_status", qgis_field_type("string")))
         return fields
 
