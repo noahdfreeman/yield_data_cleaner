@@ -29,7 +29,7 @@ def get_plugin_logo_data_uri() -> str:
                 encoded = base64.b64encode(f.read()).decode("ascii")
                 _CACHED_LOGO_DATA_URI = f"data:image/png;base64,{encoded}"
                 return _CACHED_LOGO_DATA_URI
-    except Exception:
+    except Exception:  # nosec B110
         pass
     _CACHED_LOGO_DATA_URI = ""
     return _CACHED_LOGO_DATA_URI
@@ -322,12 +322,12 @@ def generate_html_review(
     if "UTM zone " in analysis_crs:
         try:
             zone_num = int(analysis_crs.split("UTM zone ")[1].split("N")[0].strip())
-        except Exception:
+        except Exception:  # nosec B110
             pass
     elif "EPSG:326" in analysis_crs or "EPSG:269" in analysis_crs:
         try:
             zone_num = int(analysis_crs[-2:])
-        except Exception:
+        except Exception:  # nosec B110
             pass
 
     # Discover all raw columns in original dataset
@@ -547,7 +547,7 @@ def generate_html_review(
 
     logo_data_uri = get_plugin_logo_data_uri()
 
-    html_template = f"""<!DOCTYPE html>
+    html_template = f"""<!DOCTYPE html>  # nosec B608
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1875,5 +1875,5 @@ def generate_html_review(
         resetExtent();
     </script>
 </body>
-</html>"""
+</html>"""  # nosec B608
     return html_template

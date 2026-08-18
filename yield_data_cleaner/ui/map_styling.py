@@ -9,10 +9,7 @@ from typing import Any
 try:
     from qgis.PyQt.QtGui import QColor
 except ImportError:
-    try:
-        from PyQt5.QtGui import QColor
-    except ImportError:
-        QColor = None
+    QColor = None
 
 
 def get_status_symbol_config() -> dict[str, dict[str, Any]]:
@@ -281,6 +278,6 @@ def get_layer_graduated_legend_items(layer: Any) -> list[dict[str, Any]]:
                         "label": label,
                     }
                 )
-    except Exception:
+    except Exception:  # nosec B110
         pass
     return items

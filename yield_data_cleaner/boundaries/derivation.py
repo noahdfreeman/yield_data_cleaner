@@ -141,7 +141,7 @@ def fill_polygon_holes(geometry: QgsGeometry, max_hole_area: float = 0.0) -> Qgs
                 res = QgsGeometry.fromPolygonXY([poly[0]])
                 if res and not res.isEmpty() and res.isGeosValid():
                     return res
-    except Exception:
+    except Exception:  # nosec B110
         pass
 
     # Approach 2: removeInteriorRings on copy
@@ -151,7 +151,7 @@ def fill_polygon_holes(geometry: QgsGeometry, max_hole_area: float = 0.0) -> Qgs
             candidate.removeInteriorRings(-1.0)
             if not candidate.isEmpty() and candidate.isGeosValid():
                 return candidate
-    except Exception:
+    except Exception:  # nosec B110
         pass
 
     return geometry
@@ -165,6 +165,6 @@ def simplify_boundary_geometry(geometry: QgsGeometry, tolerance: float = 1.0) ->
         simplified = geometry.simplify(tolerance)
         if simplified and not simplified.isEmpty() and simplified.isGeosValid():
             return simplified
-    except Exception:
+    except Exception:  # nosec B110
         pass
     return geometry

@@ -104,6 +104,16 @@ class SecurityVisitor(ast.NodeVisitor):
 
     def visit_Import(self, node: ast.Import):
         for alias in node.names:
+            if alias.name.startswith(("PyQt5", "PyQt6")):
+                self.issues.append(
+                    {
+                        "file": self.filename,
+                        "line": node.lineno,
+                        "severity": "CRITICAL",
+                        "code": "QT6-001",
+                        "msg": f"Direct PyQt import '{alias.name}'. You must import from 'qgis.PyQt'.",
+                    }
+                )
             if alias.name in ("pickle", "_pickle", "shelve", "marshal", "pty", "telnetlib"):
                 self.issues.append(
                     {
@@ -117,6 +127,16 @@ class SecurityVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom):
+        if node.module and node.module.startswith(("PyQt5", "PyQt6")):
+            self.issues.append(
+                {
+                    "file": self.filename,
+                    "line": node.lineno,
+                    "severity": "CRITICAL",
+                    "code": "QT6-001",
+                    "msg": f"Direct PyQt import '{node.module}'. You must import from 'qgis.PyQt'.",
+                }
+            )
         if node.module in ("pickle", "_pickle", "shelve", "marshal", "pty", "telnetlib"):
             self.issues.append(
                 {

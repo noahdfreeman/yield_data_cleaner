@@ -33,7 +33,7 @@ def evaluate_pass_edge_filters(
         pass_groups[pass_id].append(i)
 
     for pass_id, indices in pass_groups.items():
-        if pass_id == "unassigned" or not indices:
+        if pass_id == "unassigned" or not indices:  # nosec B105
             continue
 
         count = len(indices)

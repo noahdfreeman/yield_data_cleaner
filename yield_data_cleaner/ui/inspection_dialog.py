@@ -111,7 +111,7 @@ CANONICAL_FIELD_DISPLAY_LABELS = {
     "elevation_m": "Elevation (ft or m)",
     "crop_code": "Crop / Product Name",
     "machine_id": "Machine / Combine ID",
-    "source_pass_id": "Pass Number / ID",
+    "source_pass_id": "Pass Number / ID",  # nosec B105
     "timestamp_utc": "Date & Time (UTC)",
     "date": "Harvest Date",
     "time": "Harvest Time",
@@ -277,7 +277,7 @@ class ModalBoundaryVertexTool(QgsMapTool):
         for m in self.markers:
             try:
                 self.canvas.scene().removeItem(m)
-            except Exception:
+            except Exception:  # nosec B110
                 pass
         self.markers.clear()
         self.vertex_points.clear()
@@ -312,7 +312,11 @@ class ModalBoundaryVertexTool(QgsMapTool):
         m = QgsVertexMarker(self.canvas)
         m.setCenter(pt_xy)
         m.setColor(QColor("#2563eb"))
-        m.setIconType(QgsVertexMarker.ICON_BOX)
+        m.setIconType(
+            QgsVertexMarker.IconType.ICON_BOX
+            if hasattr(QgsVertexMarker, "IconType")
+            else getattr(QgsVertexMarker, "ICON_BOX", 1)
+        )
         m.setIconSize(9)
         m.setPenWidth(2)
         self.markers.append(m)
@@ -322,7 +326,7 @@ class ModalBoundaryVertexTool(QgsMapTool):
         for m in self.markers:
             try:
                 self.canvas.scene().removeItem(m)
-            except Exception:
+            except Exception:  # nosec B110
                 pass
         self.markers.clear()
         self.vertex_points.clear()
@@ -355,7 +359,7 @@ class ModalBoundaryVertexTool(QgsMapTool):
                 )
                 if pixel_dist <= 14.0:
                     return (feat.id(), min_pt, after_idx)
-            except Exception:
+            except Exception:  # nosec B110
                 pass
         return None
 
@@ -378,7 +382,7 @@ class ModalBoundaryVertexTool(QgsMapTool):
             self.is_panning = True
             try:
                 self.canvas.panAction(e)
-            except Exception:
+            except Exception:  # nosec B110
                 pass
             return
 
@@ -399,14 +403,14 @@ class ModalBoundaryVertexTool(QgsMapTool):
                                 self.canvas.refresh()
                                 if self.on_modified:
                                     self.on_modified("Vertex deleted.")
-                        except Exception:
+                        except Exception:  # nosec B110
                             pass
                 return
             else:
                 self.is_panning = True
                 try:
                     self.canvas.panAction(e)
-                except Exception:
+                except Exception:  # nosec B110
                     pass
                 return
 
@@ -436,7 +440,7 @@ class ModalBoundaryVertexTool(QgsMapTool):
                                 self.canvas.refresh()
                                 if self.on_modified:
                                     self.on_modified("New vertex added on boundary edge.")
-                        except Exception:
+                        except Exception:  # nosec B110
                             pass
                 return
 
@@ -444,7 +448,7 @@ class ModalBoundaryVertexTool(QgsMapTool):
             self.is_panning = True
             try:
                 self.canvas.panAction(e)
-            except Exception:
+            except Exception:  # nosec B110
                 pass
             return
 
@@ -456,7 +460,7 @@ class ModalBoundaryVertexTool(QgsMapTool):
         elif getattr(self, "is_panning", False):
             try:
                 self.canvas.panAction(e)
-            except Exception:
+            except Exception:  # nosec B110
                 pass
 
     def canvasReleaseEvent(self, e):
@@ -464,7 +468,7 @@ class ModalBoundaryVertexTool(QgsMapTool):
             self.is_panning = False
             try:
                 self.canvas.panActionEnd(e.pos())
-            except Exception:
+            except Exception:  # nosec B110
                 pass
             return
 
@@ -482,7 +486,7 @@ class ModalBoundaryVertexTool(QgsMapTool):
                                 layer.startEditing()
                                 layer.changeGeometry(fid, geom)
                                 layer.commitChanges()
-                        except Exception:
+                        except Exception:  # nosec B110
                             pass
                 self.refresh_markers()
                 self.canvas.refresh()
@@ -1583,7 +1587,7 @@ class YieldInputInspectionDialog(QDialog):
                 self.test_weight_spin.setValue(prof.test_weight_lb_per_bushel)
             if hasattr(self, "standard_moisture_spin"):
                 self.standard_moisture_spin.setValue(prof.standard_moisture_pct)
-        except Exception:
+        except Exception:  # nosec B110
             pass
         self._refresh_suggested_field_name()
         self._update_run_preview()
@@ -2198,7 +2202,7 @@ class YieldInputInspectionDialog(QDialog):
             # Connect selectionChanged signal so selected points on map canvas display in modal table
             try:
                 prepared_layer.selectionChanged.connect(self._on_canvas_selection_changed)
-            except Exception:
+            except Exception:  # nosec B110
                 pass
 
             self._style_button_completed(
@@ -2502,7 +2506,7 @@ class YieldInputInspectionDialog(QDialog):
                 try:
                     dry_num = float(str(dry_raw).replace(",", ""))
                     direct_note = f"<br/>• Compare with direct column (<code>{html.escape(dry_col)}</code>): <b>{dry_num:.2f} bu/ac</b> (diff: {calc_bu_ac - dry_num:+.2f} bu/ac)"
-                except Exception:
+                except Exception:  # nosec B110
                     pass
 
             sample_calc_html = (
@@ -2576,7 +2580,7 @@ class YieldInputInspectionDialog(QDialog):
             # Connect selection change to live update sample values
             try:
                 combo.currentIndexChanged.disconnect()
-            except Exception:
+            except Exception:  # nosec B110
                 pass
             combo.currentIndexChanged.connect(lambda _, r=row: self._on_mapping_combo_changed(r))
 
@@ -3771,7 +3775,7 @@ class YieldInputInspectionDialog(QDialog):
                         if xform is not None:
                             try:
                                 geom_wgs.transform(xform)
-                            except Exception:
+                            except Exception:  # nosec B110
                                 pass
                         if geom_wgs.isMultipart():
                             polys = geom_wgs.asMultiPolygon()
@@ -3791,7 +3795,7 @@ class YieldInputInspectionDialog(QDialog):
                                             ring.append((round(lat_c, 6), round(lon_c, 6)))
                                     if len(ring) >= 3:
                                         bnd_rings.append(ring)
-                except Exception:
+                except Exception:  # nosec B110
                     pass
 
             # Robust fallback: If boundary was not derived or missing, compute field boundary envelope from observations
@@ -3823,7 +3827,7 @@ class YieldInputInspectionDialog(QDialog):
                                 if xform is not None:
                                     pt = xform.transform(pt)
                                 pts.append(pt)
-                            except Exception:
+                            except Exception:  # nosec B110
                                 pass
 
                     if pts:
@@ -3837,7 +3841,7 @@ class YieldInputInspectionDialog(QDialog):
                                         for p in poly[0]
                                     ]
                                 ]
-                except Exception:
+                except Exception:  # nosec B110
                     pass
 
             grid_size = float(

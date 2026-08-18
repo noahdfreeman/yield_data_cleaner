@@ -312,7 +312,7 @@ def reconstruct_passes(
         nonlocal pass_number
         seg = PassSegment(
             pass_id=str(pass_number),
-            pass_source="reconstructed",
+            pass_source="reconstructed",  # nosec B106
             point_indices=[initial_idx],
             split_reason=reason,
         )
@@ -451,7 +451,7 @@ def validate_source_passes(
     for idx, obs in enumerate(observations):
         pass_id_val = obs.get("source_pass_id")
         if pass_id_val is None or str(pass_id_val).strip() == "":
-            pass_id_val = "unassigned"
+            pass_id_val = "unassigned"  # nosec B105
         else:
             pass_id_val = str(pass_id_val).strip()
         if pass_id_val not in pass_groups:
@@ -469,13 +469,13 @@ def validate_source_passes(
     for pass_id_str, indices in pass_groups.items():
         seg = PassSegment(
             pass_id=pass_id_str,
-            pass_source="source",
+            pass_source="source",  # nosec B106
             point_indices=indices,
             split_reason="source",
         )
         _finalize_pass(seg, observations, coords, timestamps, headings, config)
 
-        if pass_id_str == "unassigned":
+        if pass_id_str == "unassigned":  # nosec B105
             seg.confidence = 0.0
 
         passes.append(seg)

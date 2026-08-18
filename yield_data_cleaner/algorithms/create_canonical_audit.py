@@ -374,7 +374,7 @@ class CreateCanonicalAuditAlgorithm(QgsProcessingAlgorithm):
         )
         transform = QgsCoordinateTransform(source_crs, analysis_crs, context.transformContext())
         output_fields, source_field_names = self._output_fields(source_fields)
-        wkb_type = QgsWkbTypes.Point if csv_inspection is not None else source.wkbType()
+        wkb_type = QgsWkbTypes.Type.Point if csv_inspection is not None else source.wkbType()
         sink, destination_id = self.parameterAsSink(
             parameters, self.OUTPUT, context, output_fields, wkb_type, analysis_crs
         )

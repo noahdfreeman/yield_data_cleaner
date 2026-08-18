@@ -58,7 +58,7 @@ def evaluate_motion_filters(
             pass_groups[pass_id].append(i)
 
         for pass_id, indices in pass_groups.items():
-            if pass_id == "unassigned" or len(indices) < 2:
+            if pass_id == "unassigned" or len(indices) < 2:  # nosec B105
                 continue
 
             for k in range(1, len(indices)):

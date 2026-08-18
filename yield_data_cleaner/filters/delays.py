@@ -62,7 +62,7 @@ def apply_sensor_delays(
     flow_fields = ("yield_wet_mass_area", "yield_dry_mass_area", "mass_flow_wet", "mass_flow_dry")
 
     for pass_id, indices in pass_groups.items():
-        if pass_id == "unassigned" or len(indices) < 2:
+        if pass_id == "unassigned" or len(indices) < 2:  # nosec B105
             continue
 
         # Estimate average sampling interval within pass

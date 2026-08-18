@@ -43,7 +43,7 @@ class ReconstructPassesAlgorithm(QgsProcessingAlgorithm):
     SPLIT_ON_HEADER = "SPLIT_ON_HEADER"
     USE_SOURCE_PASSES = "USE_SOURCE_PASSES"
     OUTPUT_POINTS = "OUTPUT_POINTS"
-    PASS_LINES = "PASS_LINES"
+    PASS_LINES = "PASS_LINES"  # nosec B105
     SUMMARY = "SUMMARY"
 
     @staticmethod

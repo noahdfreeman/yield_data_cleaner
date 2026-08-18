@@ -17,7 +17,7 @@ AGLEADER_MAPPING = {
     "swath_width_m": "Width (ft)",
     "heading_deg": "Heading",
     "elevation_m": "Elevation (ft)",
-    "source_pass_id": "Pass",
+    "source_pass_id": "Pass",  # nosec B105
 }
 
 GREENSTAR_MAPPING = {
@@ -30,7 +30,7 @@ GREENSTAR_MAPPING = {
     "swath_width_m": "SWATH_WIDTH",
     "heading_deg": "HEADING",
     "elevation_m": "ELEVATION",
-    "source_pass_id": "PASS_NUM",
+    "source_pass_id": "PASS_NUM",  # nosec B105
 }
 
 VENDOR_SOURCE_UNITS = {

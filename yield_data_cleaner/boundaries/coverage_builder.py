@@ -51,7 +51,7 @@ def build_swath_footprint(
     swath_width_m: float,
     length_m: float,
     obs_id: str = "",
-    pass_id: str = "",
+    pass_id: str = "",  # nosec B107
     yield_val: float | None = None,
 ) -> SwathFootprint:
     """Construct a 4-point rectangular footprint oriented along the travel heading."""

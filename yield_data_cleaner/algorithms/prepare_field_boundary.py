@@ -251,7 +251,7 @@ class PrepareFieldBoundaryAlgorithm(QgsProcessingAlgorithm):
             self.OUTPUT,
             context,
             fields,
-            QgsWkbTypes.MultiPolygon,
+            QgsWkbTypes.Type.MultiPolygon,
             analysis_crs,
         )
         if sink is None:

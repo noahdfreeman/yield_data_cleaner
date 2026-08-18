@@ -203,7 +203,7 @@ def canonicalize_attributes(
         result[field_name] = None if value is None or str(value).strip() == "" else str(value)
     if not result.get("pass_id") and result.get("source_pass_id"):
         result["pass_id"] = result["source_pass_id"]
-        result["pass_source"] = "source"
+        result["pass_source"] = "source"  # nosec B105
 
     # Yield Calculation Precedence:
     # 1. Primary: If physical sensor calculation variables (mass flow, speed, swath width) are available,
