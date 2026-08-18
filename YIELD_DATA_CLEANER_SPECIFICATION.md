@@ -12,8 +12,8 @@
 
 **Planned license:** GPL-3.0-or-later
 
-**Current development version:** 1.0.0
-**Target public release:** 1.0.0
+**Current development version:** 1.0.1
+**Target public release:** 1.0.1
 
 ## 1. Delivery status
 

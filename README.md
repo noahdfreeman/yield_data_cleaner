@@ -5,7 +5,7 @@ cleaning combine yield-monitor data one field at a time. It is inspired by the
 filtering concepts in USDA-ARS Yield Editor 2 and is being implemented as a new,
 auditable Python/PyQGIS workflow.
 
-Development is currently at version `1.0.0`. Milestones provide the
+Development is currently at version `1.0.1`. Milestones provide the
 plugin foundation, editable automatic column suggestions with agronomic value-range distribution scoring and priority for volumetric dry yield (Yld_Vol_Dr), primary physical sensor calculation precedence with direct dry yield fallback, per-field unit/format dropdown selectors with clear volume vs mass differentiation and lb/ac support, representative quantile sample values in column mapping, live step-by-step Yield Calculation & Data Advisory audits, reusable mappings,
 crop/unit profiles, CRS recognition/transformation, field boundary derivation/classification,
 two-step boundary import/creation with top-docked setup, live boundary preview, exterior-ring hole removal, 50% initial vertex default with interactive ±15% simplification and densification (add vertices), in-modal interactive vertex editing with integrated canvas panning,

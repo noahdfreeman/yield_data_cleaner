@@ -2,6 +2,15 @@
 
 All notable changes to Yield Data Cleaner will be documented here.
 
+## 1.0.1 - 2026-08-18
+
+### Fixed
+- **QGIS Plugin Repository Security & Qt6 Compliance**:
+  - Resolved Bandit security false positives on harvest pass names, parameters, and HTML templates (0 issues across all scanners).
+  - Scoped WKB geometry enums to `QgsWkbTypes.Type.MultiPolygon` and `QgsWkbTypes.Type.Point` for full Qt6 / QGIS 3.34+ / QGIS 4 compatibility.
+  - Scoped vertex markers to `QgsVertexMarker.IconType.ICON_BOX`.
+  - Removed direct `PyQt5` import fallback in map styling to strictly adhere to official QGIS plugin import standards.
+
 ## 1.0.0 - 2026-08-17
 
 ### Added
