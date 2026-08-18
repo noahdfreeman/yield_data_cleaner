@@ -24,7 +24,11 @@ class AdaptImportResult:
 
 def import_adapt_standard_package(package_dir_or_manifest: Path) -> AdaptImportResult:
     """Read and validate an ADAPT Standard package into canonical harvest structures."""
-    pkg_dir = package_dir_or_manifest.parent if package_dir_or_manifest.is_file() else package_dir_or_manifest
+    pkg_dir = (
+        package_dir_or_manifest.parent
+        if package_dir_or_manifest.is_file()
+        else package_dir_or_manifest
+    )
     if not pkg_dir.exists() or not pkg_dir.is_dir():
         raise FileNotFoundError(f"ADAPT package directory not found: {pkg_dir}")
 
@@ -61,15 +65,17 @@ def import_adapt_standard_package(package_dir_or_manifest: Path) -> AdaptImportR
             else:
                 cx, cy = 0.0, 0.0
 
-            observations.append({
-                "source_index": idx,
-                "observation_id": props.get("observation_id", f"adapt_{idx}"),
-                "pass_id": str(props.get("pass_id", "1")),
-                "x": cx,
-                "y": cy,
-                "yield_wet_mass_area": props.get("yield_wet_mass_area"),
-                "swath_width_m": props.get("swath_width_m"),
-            })
+            observations.append(
+                {
+                    "source_index": idx,
+                    "observation_id": props.get("observation_id", f"adapt_{idx}"),
+                    "pass_id": str(props.get("pass_id", "1")),
+                    "x": cx,
+                    "y": cy,
+                    "yield_wet_mass_area": props.get("yield_wet_mass_area"),
+                    "swath_width_m": props.get("swath_width_m"),
+                }
+            )
 
     return AdaptImportResult(
         crop_code=crop_code,

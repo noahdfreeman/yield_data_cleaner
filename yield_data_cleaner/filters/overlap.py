@@ -6,7 +6,7 @@ from __future__ import annotations
 import math
 from typing import Any, Mapping, Sequence
 
-from ..core.pass_reconstruction import euclidean_distance, get_point_coordinate
+from ..core.pass_reconstruction import get_point_coordinate
 from ..core.recipe import CleaningRecipe
 
 

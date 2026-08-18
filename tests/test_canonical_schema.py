@@ -33,7 +33,9 @@ class CanonicalSchemaTests(unittest.TestCase):
             source_attribute_collisions({"speed_m_s": 1, "Vendor": "x"}), ("speed_m_s",)
         )
         self.assertEqual(
-            source_attribute_collisions({"DURATION_S": 1.0, "Yield_Wet_Mass_Area": 5000.0, "Vendor": "x"}),
+            source_attribute_collisions(
+                {"DURATION_S": 1.0, "Yield_Wet_Mass_Area": 5000.0, "Vendor": "x"}
+            ),
             ("DURATION_S", "Yield_Wet_Mass_Area"),
         )
 

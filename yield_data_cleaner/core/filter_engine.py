@@ -33,8 +33,16 @@ class CleaningRunResult:
             "total_observations": self.total_observations,
             "accepted_count": self.accepted_count,
             "excluded_count": self.excluded_count,
-            "accepted_percentage": round((self.accepted_count / self.total_observations * 100.0), 2) if self.total_observations else 0.0,
-            "excluded_percentage": round((self.excluded_count / self.total_observations * 100.0), 2) if self.total_observations else 0.0,
+            "accepted_percentage": (
+                round((self.accepted_count / self.total_observations * 100.0), 2)
+                if self.total_observations
+                else 0.0
+            ),
+            "excluded_percentage": (
+                round((self.excluded_count / self.total_observations * 100.0), 2)
+                if self.total_observations
+                else 0.0
+            ),
             "reason_counts": dict(self.reason_counts),
             "recipe": self.recipe.to_dict(),
         }
@@ -67,7 +75,9 @@ def run_cleaning_filters(
     if recipe.apply_flow_delay or recipe.apply_moisture_delay:
         f_delay = recipe.flow_delay_s if recipe.apply_flow_delay else 0.0
         m_delay = recipe.moisture_delay_s if recipe.apply_moisture_delay else 0.0
-        working_obs = apply_sensor_delays(observations, flow_delay_s=f_delay, moisture_delay_s=m_delay)
+        working_obs = apply_sensor_delays(
+            observations, flow_delay_s=f_delay, moisture_delay_s=m_delay
+        )
 
     # 1. Quality Filters
     quality_reasons = evaluate_quality_filters(working_obs, recipe)
@@ -143,11 +153,13 @@ def run_cleaning_filters(
         for code in combined_reasons:
             reason_counts[code] = reason_counts.get(code, 0) + 1
 
-        obs_updates.append({
-            "clean_status": clean_status,
-            "filter_reasons": ";".join(combined_reasons),
-            "filter_flags": str(len(combined_reasons)),
-        })
+        obs_updates.append(
+            {
+                "clean_status": clean_status,
+                "filter_reasons": ";".join(combined_reasons),
+                "filter_flags": str(len(combined_reasons)),
+            }
+        )
 
     return CleaningRunResult(
         total_observations=n,

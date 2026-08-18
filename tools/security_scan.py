@@ -14,7 +14,6 @@ import re
 import sys
 import zipfile
 
-
 PLUGIN_DIR = Path(__file__).resolve().parent.parent / "yield_data_cleaner"
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
@@ -28,76 +27,106 @@ class SecurityVisitor(ast.NodeVisitor):
         # Check eval / exec / compile
         if isinstance(node.func, ast.Name):
             if node.func.id in ("eval", "exec"):
-                self.issues.append({
-                    "file": self.filename,
-                    "line": node.lineno,
-                    "severity": "CRITICAL",
-                    "code": "SEC-001",
-                    "msg": f"Dangerous dynamic execution function used: {node.func.id}()",
-                })
+                self.issues.append(
+                    {
+                        "file": self.filename,
+                        "line": node.lineno,
+                        "severity": "CRITICAL",
+                        "code": "SEC-001",
+                        "msg": f"Dangerous dynamic execution function used: {node.func.id}()",
+                    }
+                )
             elif node.func.id == "__import__":
-                self.issues.append({
-                    "file": self.filename,
-                    "line": node.lineno,
-                    "severity": "HIGH",
-                    "code": "SEC-002",
-                    "msg": "Dynamic __import__() call detected.",
-                })
+                self.issues.append(
+                    {
+                        "file": self.filename,
+                        "line": node.lineno,
+                        "severity": "HIGH",
+                        "code": "SEC-002",
+                        "msg": "Dynamic __import__() call detected.",
+                    }
+                )
         # Check os.system, os.popen, subprocess, QProcess
         elif isinstance(node.func, ast.Attribute):
             full_name = self._get_attribute_name(node.func)
             if full_name in (
-                "os.system", "os.popen", "os.popen2", "os.popen3", "os.popen4",
-                "subprocess.Popen", "subprocess.call", "subprocess.check_call",
-                "subprocess.check_output", "subprocess.run",
-                "QProcess.startDetached", "QProcess.execute", "QProcess.start",
+                "os.system",
+                "os.popen",
+                "os.popen2",
+                "os.popen3",
+                "os.popen4",
+                "subprocess.Popen",
+                "subprocess.call",
+                "subprocess.check_call",
+                "subprocess.check_output",
+                "subprocess.run",
+                "QProcess.startDetached",
+                "QProcess.execute",
+                "QProcess.start",
             ):
-                self.issues.append({
-                    "file": self.filename,
-                    "line": node.lineno,
-                    "severity": "CRITICAL",
-                    "code": "SEC-003",
-                    "msg": f"External process execution detected: {full_name}()",
-                })
-            elif full_name in ("pickle.load", "pickle.loads", "_pickle.load", "_pickle.loads", "marshal.load", "marshal.loads"):
-                self.issues.append({
-                    "file": self.filename,
-                    "line": node.lineno,
-                    "severity": "CRITICAL",
-                    "code": "SEC-004",
-                    "msg": f"Insecure deserialization detected: {full_name}()",
-                })
+                self.issues.append(
+                    {
+                        "file": self.filename,
+                        "line": node.lineno,
+                        "severity": "CRITICAL",
+                        "code": "SEC-003",
+                        "msg": f"External process execution detected: {full_name}()",
+                    }
+                )
+            elif full_name in (
+                "pickle.load",
+                "pickle.loads",
+                "_pickle.load",
+                "_pickle.loads",
+                "marshal.load",
+                "marshal.loads",
+            ):
+                self.issues.append(
+                    {
+                        "file": self.filename,
+                        "line": node.lineno,
+                        "severity": "CRITICAL",
+                        "code": "SEC-004",
+                        "msg": f"Insecure deserialization detected: {full_name}()",
+                    }
+                )
             elif full_name == "tempfile.mktemp":
-                self.issues.append({
-                    "file": self.filename,
-                    "line": node.lineno,
-                    "severity": "MEDIUM",
-                    "code": "SEC-005",
-                    "msg": "Insecure temporary file creation: tempfile.mktemp() (use NamedTemporaryFile)",
-                })
+                self.issues.append(
+                    {
+                        "file": self.filename,
+                        "line": node.lineno,
+                        "severity": "MEDIUM",
+                        "code": "SEC-005",
+                        "msg": "Insecure temporary file creation: tempfile.mktemp() (use NamedTemporaryFile)",
+                    }
+                )
         self.generic_visit(node)
 
     def visit_Import(self, node: ast.Import):
         for alias in node.names:
             if alias.name in ("pickle", "_pickle", "shelve", "marshal", "pty", "telnetlib"):
-                self.issues.append({
-                    "file": self.filename,
-                    "line": node.lineno,
-                    "severity": "HIGH",
-                    "code": "SEC-006",
-                    "msg": f"Potentially dangerous module imported: {alias.name}",
-                })
+                self.issues.append(
+                    {
+                        "file": self.filename,
+                        "line": node.lineno,
+                        "severity": "HIGH",
+                        "code": "SEC-006",
+                        "msg": f"Potentially dangerous module imported: {alias.name}",
+                    }
+                )
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom):
         if node.module in ("pickle", "_pickle", "shelve", "marshal", "pty", "telnetlib"):
-            self.issues.append({
-                "file": self.filename,
-                "line": node.lineno,
-                "severity": "HIGH",
-                "code": "SEC-006",
-                "msg": f"Potentially dangerous module imported: {node.module}",
-            })
+            self.issues.append(
+                {
+                    "file": self.filename,
+                    "line": node.lineno,
+                    "severity": "HIGH",
+                    "code": "SEC-006",
+                    "msg": f"Potentially dangerous module imported: {node.module}",
+                }
+            )
         self.generic_visit(node)
 
     def _get_attribute_name(self, node: ast.Attribute) -> str:
@@ -116,19 +145,24 @@ def check_secrets_and_credentials(content: str, filename: str) -> list[dict]:
     # Check for hardcoded private keys, AWS keys, API tokens
     patterns = [
         (r"-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----", "Hardcoded Private Key"),
-        (r"(?i)(api[_-]?key|secret[_-]?key|auth[_-]?token|password)\s*=\s*['\"][A-Za-z0-9_\-]{16,}['\"]", "Hardcoded Secret/Token"),
+        (
+            r"(?i)(api[_-]?key|secret[_-]?key|auth[_-]?token|password)\s*=\s*['\"][A-Za-z0-9_\-]{16,}['\"]",
+            "Hardcoded Secret/Token",
+        ),
         (r"AKIA[0-9A-Z]{16}", "AWS Access Key ID"),
     ]
     for lineno, line in enumerate(content.splitlines(), 1):
         for pat, desc in patterns:
             if re.search(pat, line):
-                issues.append({
-                    "file": filename,
-                    "line": lineno,
-                    "severity": "CRITICAL",
-                    "code": "SEC-010",
-                    "msg": f"Potential hardcoded credential/secret ({desc})",
-                })
+                issues.append(
+                    {
+                        "file": filename,
+                        "line": lineno,
+                        "severity": "CRITICAL",
+                        "code": "SEC-010",
+                        "msg": f"Potential hardcoded credential/secret ({desc})",
+                    }
+                )
     return issues
 
 
@@ -147,8 +181,14 @@ def validate_metadata_file(metadata_path: Path) -> list[str]:
 
     gen = config["general"]
     required_fields = [
-        "name", "qgisMinimumVersion", "description", "about",
-        "version", "author", "email", "category"
+        "name",
+        "qgisMinimumVersion",
+        "description",
+        "about",
+        "version",
+        "author",
+        "email",
+        "category",
     ]
     for field in required_fields:
         val = gen.get(field, "").strip()
@@ -185,11 +225,23 @@ def validate_zip_archive(zip_path: Path) -> list[str]:
             return ["ZIP archive is empty"]
         top_dirs = {n.split("/")[0] for n in names if "/" in n}
         if len(top_dirs) != 1 or "yield_data_cleaner" not in top_dirs:
-            errors.append(f"ZIP root structure must be a single 'yield_data_cleaner/' directory. Found: {top_dirs}")
+            errors.append(
+                f"ZIP root structure must be a single 'yield_data_cleaner/' directory. Found: {top_dirs}"
+            )
 
         # Check for forbidden files in archive
         for n in names:
-            if any(forbidden in n for forbidden in ("__pycache__", ".pyc", ".git", ".DS_Store", ".pytest_cache", ".venv")):
+            if any(
+                forbidden in n
+                for forbidden in (
+                    "__pycache__",
+                    ".pyc",
+                    ".git",
+                    ".DS_Store",
+                    ".pytest_cache",
+                    ".venv",
+                )
+            ):
                 errors.append(f"Forbidden artifact in ZIP package: {n}")
             if n.startswith("/") or ".." in n:
                 errors.append(f"Unsafe file path in ZIP: {n}")
@@ -210,13 +262,15 @@ def run_full_security_scan() -> int:
         try:
             content = py_file.read_text(encoding="utf-8")
         except Exception as exc:
-            total_issues.append({
-                "file": str(rel_path),
-                "line": 1,
-                "severity": "CRITICAL",
-                "code": "IO-001",
-                "msg": f"Failed to read file as UTF-8: {exc}",
-            })
+            total_issues.append(
+                {
+                    "file": str(rel_path),
+                    "line": 1,
+                    "severity": "CRITICAL",
+                    "code": "IO-001",
+                    "msg": f"Failed to read file as UTF-8: {exc}",
+                }
+            )
             continue
 
         # AST inspection
@@ -226,13 +280,15 @@ def run_full_security_scan() -> int:
             visitor.visit(tree)
             total_issues.extend(visitor.issues)
         except Exception as exc:
-            total_issues.append({
-                "file": str(rel_path),
-                "line": 1,
-                "severity": "HIGH",
-                "code": "AST-001",
-                "msg": f"Syntax / AST parse error: {exc}",
-            })
+            total_issues.append(
+                {
+                    "file": str(rel_path),
+                    "line": 1,
+                    "severity": "HIGH",
+                    "code": "AST-001",
+                    "msg": f"Syntax / AST parse error: {exc}",
+                }
+            )
 
         # Secret / Credential scan
         secret_issues = check_secrets_and_credentials(content, str(rel_path))
@@ -242,18 +298,21 @@ def run_full_security_scan() -> int:
     print("[*] Validating metadata.txt compliance...")
     meta_errors = validate_metadata_file(PLUGIN_DIR / "metadata.txt")
     for err in meta_errors:
-        total_issues.append({
-            "file": "yield_data_cleaner/metadata.txt",
-            "line": 1,
-            "severity": "HIGH",
-            "code": "META-001",
-            "msg": err,
-        })
+        total_issues.append(
+            {
+                "file": "yield_data_cleaner/metadata.txt",
+                "line": 1,
+                "severity": "HIGH",
+                "code": "META-001",
+                "msg": err,
+            }
+        )
 
     # Validate latest release ZIP archive
     dist_dir = ROOT_DIR / "dist"
     zips = list(dist_dir.glob("yield_data_cleaner-*.zip"))
     if zips:
+
         def parse_ver(p: Path):
             m = re.search(r"yield_data_cleaner-(\d+)\.(\d+)\.(\d+)", p.name)
             return tuple(int(x) for x in m.groups()) if m else (0, 0, 0)
@@ -262,13 +321,15 @@ def run_full_security_scan() -> int:
         print(f"[*] Validating release archive {latest_zip.name}...")
         zip_errors = validate_zip_archive(latest_zip)
         for err in zip_errors:
-            total_issues.append({
-                "file": str(latest_zip.relative_to(ROOT_DIR)),
-                "line": 1,
-                "severity": "HIGH",
-                "code": "PKG-001",
-                "msg": err,
-            })
+            total_issues.append(
+                {
+                    "file": str(latest_zip.relative_to(ROOT_DIR)),
+                    "line": 1,
+                    "severity": "HIGH",
+                    "code": "PKG-001",
+                    "msg": err,
+                }
+            )
     else:
         print("[!] No distribution ZIP found in dist/ to validate.")
 
@@ -277,13 +338,19 @@ def run_full_security_scan() -> int:
     print("=" * 60)
 
     if not total_issues:
-        print("\n>>> ALL CHECKS PASSED: 0 Security Vulnerabilities, 0 Packaging Defects, 0 Metadata Violations. <<<")
-        print("The plugin is fully compliant with official QGIS Plugin Repository security standards.\n")
+        print(
+            "\n>>> ALL CHECKS PASSED: 0 Security Vulnerabilities, 0 Packaging Defects, 0 Metadata Violations. <<<"
+        )
+        print(
+            "The plugin is fully compliant with official QGIS Plugin Repository security standards.\n"
+        )
         return 0
     else:
         print(f"\nFound {len(total_issues)} issues:")
         for issue in total_issues:
-            print(f" [{issue['severity']}] {issue['code']} - {issue['file']}:{issue['line']} -> {issue['msg']}")
+            print(
+                f" [{issue['severity']}] {issue['code']} - {issue['file']}:{issue['line']} -> {issue['msg']}"
+            )
         return 1
 
 

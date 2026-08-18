@@ -17,9 +17,39 @@ def normalize_name(value: str) -> str:
 
 
 FIELD_ALIASES: Mapping[str, tuple[str, ...]] = {
-    "x": ("longitude", "lon", "long", "x", "xcoord", "xcoordinate", "easting", "east", "gps_lon", "long_dd"),
-    "y": ("latitude", "lat", "y", "ycoord", "ycoordinate", "northing", "north", "gps_lat", "lat_dd"),
-    "timestamp_utc": ("timestamp", "datetime", "dateandtime", "gpsdatetime", "gpstime", "utc", "iso_time", "dt_utc"),
+    "x": (
+        "longitude",
+        "lon",
+        "long",
+        "x",
+        "xcoord",
+        "xcoordinate",
+        "easting",
+        "east",
+        "gps_lon",
+        "long_dd",
+    ),
+    "y": (
+        "latitude",
+        "lat",
+        "y",
+        "ycoord",
+        "ycoordinate",
+        "northing",
+        "north",
+        "gps_lat",
+        "lat_dd",
+    ),
+    "timestamp_utc": (
+        "timestamp",
+        "datetime",
+        "dateandtime",
+        "gpsdatetime",
+        "gpstime",
+        "utc",
+        "iso_time",
+        "dt_utc",
+    ),
     "date": ("date", "harvestdate", "gpsdate", "harvest_date", "day"),
     "time": ("time", "harvesttime", "localtime", "harvest_time", "tod"),
     "source_sequence": (
@@ -244,8 +274,26 @@ FIELD_ALIASES: Mapping[str, tuple[str, ...]] = {
         "elevation_m",
         "elevation_ft",
     ),
-    "crop_code": ("product", "crop", "croptype", "crop_type", "commodity", "harvestedcrop", "crop_name"),
-    "machine_id": ("machine", "machineid", "machine_id", "combine", "combine_id", "device", "deviceid", "serialnumber", "serial_num"),
+    "crop_code": (
+        "product",
+        "crop",
+        "croptype",
+        "crop_type",
+        "commodity",
+        "harvestedcrop",
+        "crop_name",
+    ),
+    "machine_id": (
+        "machine",
+        "machineid",
+        "machine_id",
+        "combine",
+        "combine_id",
+        "device",
+        "deviceid",
+        "serialnumber",
+        "serial_num",
+    ),
 }
 
 NUMERIC_FIELDS = {
@@ -350,13 +398,19 @@ def detect_columns(
                             # Volumetric yield in bu/ac typically averages 15 - 450 bu/ac (e.g. Yld_Vol_Dr)
                             if 15.0 <= med <= 450.0:
                                 score += 0.06
-                                reasons.append(f"typical volumetric crop yield range (median ~{med:.1f} bu/ac)")
+                                reasons.append(
+                                    f"typical volumetric crop yield range (median ~{med:.1f} bu/ac)"
+                                )
                             elif med > 500.0:
-                                reasons.append(f"mass-per-area rate (median ~{med:.1f} lb/ac or kg/ha)")
+                                reasons.append(
+                                    f"mass-per-area rate (median ~{med:.1f} lb/ac or kg/ha)"
+                                )
                         elif canonical in {"mass_flow_wet", "mass_flow_dry"}:
                             if 0.5 <= med <= 180.0:
                                 score += 0.03
-                                reasons.append(f"typical harvest mass flow rate (median ~{med:.1f} lb/s)")
+                                reasons.append(
+                                    f"typical harvest mass flow rate (median ~{med:.1f} lb/s)"
+                                )
                         elif canonical == "speed_m_s":
                             if 0.5 <= med <= 15.0:
                                 score += 0.03

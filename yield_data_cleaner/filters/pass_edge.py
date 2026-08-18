@@ -49,7 +49,7 @@ def evaluate_pass_edge_filters(
         # Flag end of pass
         if recipe.filter_pass_end and recipe.pass_end_count > 0:
             end_k = min(recipe.pass_end_count, count // 2)
-            for idx in indices[max(0, count - end_k):]:
+            for idx in indices[max(0, count - end_k) :]:
                 results[idx].append("pass_end")
 
     return results

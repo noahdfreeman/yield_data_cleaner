@@ -52,7 +52,9 @@ def write_filter_summary_csv(
     with target_path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["reason_code", "category", "description", "excluded_count", "impact_pct"])
-        for code, count in sorted(cleaning_result.reason_counts.items(), key=lambda i: i[1], reverse=True):
+        for code, count in sorted(
+            cleaning_result.reason_counts.items(), key=lambda i: i[1], reverse=True
+        ):
             reg = REASON_CODE_REGISTRY.get(code)
             desc = reg.description if reg else code
             cat = reg.category if reg else "general"
@@ -84,7 +86,11 @@ def export_cleaned_csv(
         writer.writeheader()
 
         for idx, obs in enumerate(observations):
-            update = cleaning_result.observation_updates[idx] if idx < len(cleaning_result.observation_updates) else {}
+            update = (
+                cleaning_result.observation_updates[idx]
+                if idx < len(cleaning_result.observation_updates)
+                else {}
+            )
             if update.get("clean_status") == "accepted":
                 row = dict(obs)
                 row["clean_status"] = "accepted"
@@ -128,7 +134,10 @@ def write_run_package(
     if mapping_profile:
         mapping_path.write_text(mapping_profile.to_json(), encoding="utf-8")
     else:
-        mapping_path.write_text(json.dumps({"crop_code": crop_code, "unit_profile": unit_profile}, indent=2), encoding="utf-8")
+        mapping_path.write_text(
+            json.dumps({"crop_code": crop_code, "unit_profile": unit_profile}, indent=2),
+            encoding="utf-8",
+        )
 
     # 3. Filter Summary CSV
     write_filter_summary_csv(summary_csv_path, cleaning_result, len(observations))
@@ -178,23 +187,31 @@ def write_run_package(
         "",
         "FILTER EXCLUSION BREAKDOWN:",
     ]
-    for reason, count in sorted(cleaning_result.reason_counts.items(), key=lambda x: x[1], reverse=True):
+    for reason, count in sorted(
+        cleaning_result.reason_counts.items(), key=lambda x: x[1], reverse=True
+    ):
         reg = REASON_CODE_REGISTRY.get(reason)
         desc = reg.description if reg else reason
-        pct = (count / cleaning_result.total_observations * 100.0) if cleaning_result.total_observations else 0.0
+        pct = (
+            (count / cleaning_result.total_observations * 100.0)
+            if cleaning_result.total_observations
+            else 0.0
+        )
         log_lines.append(f"  - {reason:<22} : {count:>7,} points ({pct:5.1f}%) | {desc}")
 
-    log_lines.extend([
-        "",
-        "--------------------------------------------------------------------------------",
-        "APPLIED RECIPE THRESHOLDS",
-        "--------------------------------------------------------------------------------",
-        json.dumps(effective_recipe.to_dict(), indent=2),
-        "",
-        "--------------------------------------------------------------------------------",
-        "STATUS: Completed successfully (non-destructive; raw records preserved).",
-        "================================================================================",
-    ])
+    log_lines.extend(
+        [
+            "",
+            "--------------------------------------------------------------------------------",
+            "APPLIED RECIPE THRESHOLDS",
+            "--------------------------------------------------------------------------------",
+            json.dumps(effective_recipe.to_dict(), indent=2),
+            "",
+            "--------------------------------------------------------------------------------",
+            "STATUS: Completed successfully (non-destructive; raw records preserved).",
+            "================================================================================",
+        ]
+    )
     run_log_path.write_text("\n".join(log_lines) + "\n", encoding="utf-8")
 
     # 6. Standalone Review HTML
@@ -214,7 +231,9 @@ def write_run_package(
     # 7. Companion data folder
     data_dir = output_dir / f"{run_name}_yield_cleaning_review_data"
     data_dir.mkdir(parents=True, exist_ok=True)
-    (data_dir / "summary.json").write_text(json.dumps(cleaning_result.to_dict(), indent=2, default=str), encoding="utf-8")
+    (data_dir / "summary.json").write_text(
+        json.dumps(cleaning_result.to_dict(), indent=2, default=str), encoding="utf-8"
+    )
 
     return RunPackageSummary(
         run_directory=str(output_dir),

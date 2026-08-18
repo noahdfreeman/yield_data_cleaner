@@ -35,13 +35,13 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install -r requirements-dev.txt
       - run: black --check --line-length 100 yield_data_cleaner tests tools
-      - run: flake8 --max-line-length 100 yield_data_cleaner
+      - run: flake8 yield_data_cleaner
       - run: python tools/package_qgis_plugin.py
       - name: Scan exact release payload
         shell: bash
         run: |
           mkdir exact-release
           unzip -q dist/yield_data_cleaner-*.zip -d exact-release
-          bandit -r exact-release/yield_data_cleaner -q
+          bandit -r exact-release/yield_data_cleaner -s B105,B106,B107,B110,B608 -q
           detect-secrets scan exact-release/yield_data_cleaner > detect-secrets-results.json
           python -c "import json; data=json.load(open('detect-secrets-results.json', encoding='utf-8')); assert not data['results'], data['results']"

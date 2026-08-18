@@ -237,7 +237,9 @@ def canonicalize_attributes(
         if wet_y is not None and wet_y > 0:
             if m_pct is not None and 0 <= m_pct < 100:
                 try:
-                    result["yield_dry_mass_area"] = adjust_yield_for_moisture(wet_y, m_pct, std_moist)
+                    result["yield_dry_mass_area"] = adjust_yield_for_moisture(
+                        wet_y, m_pct, std_moist
+                    )
                 except Exception:
                     result["yield_dry_mass_area"] = wet_y
             else:

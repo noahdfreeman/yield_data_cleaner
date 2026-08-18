@@ -116,7 +116,7 @@ def validate_boundary_geometry(
 
 def fill_polygon_holes(geometry: QgsGeometry, max_hole_area: float = 0.0) -> QgsGeometry:
     """Remove interior rings (holes) from polygon / multipolygon geometry.
-    
+
     If max_hole_area <= 0, all interior holes are removed.
     """
     if geometry is None or geometry.isNull() or geometry.isEmpty():

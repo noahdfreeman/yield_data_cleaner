@@ -127,27 +127,33 @@ def style_layer_with_attribute_and_ramp(
                     r_max = min_v + (i + 1) * step
                     ratio = (i + 0.5) / classes
                     c = ramp.color(ratio)
-                    sym = QgsMarkerSymbol.createSimple({
-                        "name": "circle",
-                        "size": "2.2",
-                        "color": c.name(),
-                        "outline_color": "#1e293b",
-                        "outline_width": "0.2",
-                    })
-                    new_ranges.append(QgsRendererRange(r_min, r_max, sym, f"{r_min:.2f} - {r_max:.2f}"))
+                    sym = QgsMarkerSymbol.createSimple(
+                        {
+                            "name": "circle",
+                            "size": "2.2",
+                            "color": c.name(),
+                            "outline_color": "#1e293b",
+                            "outline_width": "0.2",
+                        }
+                    )
+                    new_ranges.append(
+                        QgsRendererRange(r_min, r_max, sym, f"{r_min:.2f} - {r_max:.2f}")
+                    )
                 renderer = QgsGraduatedSymbolRenderer(matched_field, new_ranges)
                 renderer.setSourceColorRamp(ramp.clone())
         else:
             for i, r in enumerate(ranges):
                 ratio = (i + 0.5) / len(ranges)
                 color = ramp.color(ratio)
-                sym = QgsMarkerSymbol.createSimple({
-                    "name": "circle",
-                    "size": "2.2",
-                    "color": color.name(),
-                    "outline_color": "#1e293b",
-                    "outline_width": "0.2",
-                })
+                sym = QgsMarkerSymbol.createSimple(
+                    {
+                        "name": "circle",
+                        "size": "2.2",
+                        "color": color.name(),
+                        "outline_color": "#1e293b",
+                        "outline_width": "0.2",
+                    }
+                )
                 r.setSymbol(sym)
 
         layer.setRenderer(renderer)
@@ -159,7 +165,7 @@ def style_layer_with_attribute_and_ramp(
 
 def style_layer_for_display(layer: Any, mode: str = "yield") -> bool:
     """Apply graduated or categorized symbology to a QGIS layer.
-    
+
     Safe to call in both GUI and headless environments.
     """
     if layer is None or not hasattr(layer, "isValid") or not layer.isValid():
@@ -178,13 +184,15 @@ def style_layer_for_display(layer: Any, mode: str = "yield") -> bool:
             categories = []
             cfg = get_status_symbol_config()
             for val, props in cfg.items():
-                sym = QgsMarkerSymbol.createSimple({
-                    "name": "circle",
-                    "color": props["color"],
-                    "outline_color": props["stroke"],
-                    "outline_width": "0.4",
-                    "size": str(props["size"]),
-                })
+                sym = QgsMarkerSymbol.createSimple(
+                    {
+                        "name": "circle",
+                        "color": props["color"],
+                        "outline_color": props["stroke"],
+                        "outline_width": "0.4",
+                        "size": str(props["size"]),
+                    }
+                )
                 cat = QgsRendererCategory(val, sym, props["label"])
                 categories.append(cat)
             renderer = QgsCategorizedSymbolRenderer("clean_status", categories)
@@ -235,7 +243,12 @@ def style_layer_for_display(layer: Any, mode: str = "yield") -> bool:
 
 def get_layer_graduated_legend_items(layer: Any) -> list[dict[str, Any]]:
     """Extract legend items (color, label, lower, upper) from graduated or categorized layer renderer."""
-    if layer is None or not hasattr(layer, "renderer") or not hasattr(layer, "isValid") or not layer.isValid():
+    if (
+        layer is None
+        or not hasattr(layer, "renderer")
+        or not hasattr(layer, "isValid")
+        or not layer.isValid()
+    ):
         return []
     items = []
     try:
@@ -247,12 +260,14 @@ def get_layer_graduated_legend_items(layer: Any) -> list[dict[str, Any]]:
                 if sym and hasattr(sym, "color"):
                     color_hex = sym.color().name()
                 label = r.label() or f"{r.lowerValue():.1f} – {r.upperValue():.1f}"
-                items.append({
-                    "color": color_hex,
-                    "label": label,
-                    "lower": r.lowerValue(),
-                    "upper": r.upperValue(),
-                })
+                items.append(
+                    {
+                        "color": color_hex,
+                        "label": label,
+                        "lower": r.lowerValue(),
+                        "upper": r.upperValue(),
+                    }
+                )
         elif hasattr(renderer, "categories"):
             for cat in renderer.categories():
                 color_hex = "#3388ff"
@@ -260,10 +275,12 @@ def get_layer_graduated_legend_items(layer: Any) -> list[dict[str, Any]]:
                 if sym and hasattr(sym, "color"):
                     color_hex = sym.color().name()
                 label = cat.label() or str(cat.value())
-                items.append({
-                    "color": color_hex,
-                    "label": label,
-                })
+                items.append(
+                    {
+                        "color": color_hex,
+                        "label": label,
+                    }
+                )
     except Exception:
         pass
     return items

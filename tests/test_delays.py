@@ -14,13 +14,15 @@ class DelayTests(unittest.TestCase):
         t0 = datetime(2026, 10, 1, 12, 0, 0, tzinfo=timezone.utc)
         obs = []
         for i in range(10):
-            obs.append({
-                "source_index": i,
-                "pass_id": "1",
-                "timestamp_utc": (t0 + timedelta(seconds=i)).isoformat(),
-                "yield_wet_mass_area": 5000.0 + (i * 500.0),  # index 0 is 5000, index 2 is 6000
-                "moisture_pct": 15.0 + (i * 0.5),
-            })
+            obs.append(
+                {
+                    "source_index": i,
+                    "pass_id": "1",
+                    "timestamp_utc": (t0 + timedelta(seconds=i)).isoformat(),
+                    "yield_wet_mass_area": 5000.0 + (i * 500.0),  # index 0 is 5000, index 2 is 6000
+                    "moisture_pct": 15.0 + (i * 0.5),
+                }
+            )
 
         # Apply 2 second flow delay (interval is 1.0s, so shift is 2 positions)
         shifted = apply_sensor_delays(obs, flow_delay_s=2.0, moisture_delay_s=0.0)
@@ -37,12 +39,14 @@ class DelayTests(unittest.TestCase):
         t0 = datetime(2026, 10, 1, 12, 0, 0, tzinfo=timezone.utc)
         obs = []
         for i in range(30):
-            obs.append({
-                "source_index": i,
-                "pass_id": "1",
-                "timestamp_utc": (t0 + timedelta(seconds=i)).isoformat(),
-                "yield_wet_mass_area": 8000.0,
-            })
+            obs.append(
+                {
+                    "source_index": i,
+                    "pass_id": "1",
+                    "timestamp_utc": (t0 + timedelta(seconds=i)).isoformat(),
+                    "yield_wet_mass_area": 8000.0,
+                }
+            )
         result = estimate_flow_delay(obs)
         self.assertIsNotNone(result.estimated_delay_s)
         self.assertIsInstance(result.is_stable, bool)

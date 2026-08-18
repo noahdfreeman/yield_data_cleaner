@@ -38,15 +38,17 @@ class PassReconstructionTests(unittest.TestCase):
         t0 = datetime(2026, 10, 1, 12, 0, 0, tzinfo=timezone.utc)
         obs = []
         for i in range(10):
-            obs.append({
-                "source_index": i,
-                "timestamp_utc": (t0 + timedelta(seconds=i)).isoformat(),
-                "x": 500000.0 + (i * 2.0),
-                "y": 4500000.0,
-                "heading_deg": 90.0,
-                "speed_m_s": 2.0,
-                "header_engaged": True,
-            })
+            obs.append(
+                {
+                    "source_index": i,
+                    "timestamp_utc": (t0 + timedelta(seconds=i)).isoformat(),
+                    "x": 500000.0 + (i * 2.0),
+                    "y": 4500000.0,
+                    "heading_deg": 90.0,
+                    "speed_m_s": 2.0,
+                    "header_engaged": True,
+                }
+            )
 
         result = reconstruct_passes(obs)
         self.assertEqual(result.total_passes, 1)
@@ -67,24 +69,28 @@ class PassReconstructionTests(unittest.TestCase):
         obs = []
         # Pass 1: heading East
         for i in range(6):
-            obs.append({
-                "source_index": i,
-                "timestamp_utc": (t0 + timedelta(seconds=i)).isoformat(),
-                "x": 500000.0 + (i * 2.0),
-                "y": 4500000.0,
-                "heading_deg": 90.0,
-                "header_engaged": True,
-            })
+            obs.append(
+                {
+                    "source_index": i,
+                    "timestamp_utc": (t0 + timedelta(seconds=i)).isoformat(),
+                    "x": 500000.0 + (i * 2.0),
+                    "y": 4500000.0,
+                    "heading_deg": 90.0,
+                    "header_engaged": True,
+                }
+            )
         # Pass 2: heading West (180 degree turn after headland)
         for i in range(6, 12):
-            obs.append({
-                "source_index": i,
-                "timestamp_utc": (t0 + timedelta(seconds=i + 5)).isoformat(),
-                "x": 500000.0 + ((11 - i) * 2.0),
-                "y": 4500010.0,
-                "heading_deg": 270.0,
-                "header_engaged": True,
-            })
+            obs.append(
+                {
+                    "source_index": i,
+                    "timestamp_utc": (t0 + timedelta(seconds=i + 5)).isoformat(),
+                    "x": 500000.0 + ((11 - i) * 2.0),
+                    "y": 4500010.0,
+                    "heading_deg": 270.0,
+                    "header_engaged": True,
+                }
+            )
 
         result = reconstruct_passes(obs)
         self.assertEqual(result.total_passes, 2)
@@ -99,23 +105,27 @@ class PassReconstructionTests(unittest.TestCase):
         obs = []
         # Segment 1
         for i in range(5):
-            obs.append({
-                "source_index": i,
-                "timestamp_utc": (t0 + timedelta(seconds=i)).isoformat(),
-                "x": 500000.0,
-                "y": 4500000.0 + (i * 2.0),
-                "heading_deg": 0.0,
-            })
+            obs.append(
+                {
+                    "source_index": i,
+                    "timestamp_utc": (t0 + timedelta(seconds=i)).isoformat(),
+                    "x": 500000.0,
+                    "y": 4500000.0 + (i * 2.0),
+                    "heading_deg": 0.0,
+                }
+            )
         # Segment 2 (after 10 minute stop)
         t1 = t0 + timedelta(minutes=10)
         for i in range(5):
-            obs.append({
-                "source_index": i + 5,
-                "timestamp_utc": (t1 + timedelta(seconds=i)).isoformat(),
-                "x": 500000.0,
-                "y": 4500010.0 + (i * 2.0),
-                "heading_deg": 0.0,
-            })
+            obs.append(
+                {
+                    "source_index": i + 5,
+                    "timestamp_utc": (t1 + timedelta(seconds=i)).isoformat(),
+                    "x": 500000.0,
+                    "y": 4500010.0 + (i * 2.0),
+                    "heading_deg": 0.0,
+                }
+            )
 
         config = PassReconstructionConfig(max_time_gap_s=30.0)
         result = reconstruct_passes(obs, config)
@@ -127,22 +137,26 @@ class PassReconstructionTests(unittest.TestCase):
         obs = []
         # Segment 1
         for i in range(5):
-            obs.append({
-                "source_index": i,
-                "timestamp_utc": (t0 + timedelta(seconds=i)).isoformat(),
-                "x": 500000.0,
-                "y": 4500000.0 + (i * 2.0),
-                "heading_deg": 0.0,
-            })
+            obs.append(
+                {
+                    "source_index": i,
+                    "timestamp_utc": (t0 + timedelta(seconds=i)).isoformat(),
+                    "x": 500000.0,
+                    "y": 4500000.0 + (i * 2.0),
+                    "heading_deg": 0.0,
+                }
+            )
         # Segment 2 (100m away in next continuous second)
         for i in range(5):
-            obs.append({
-                "source_index": i + 5,
-                "timestamp_utc": (t0 + timedelta(seconds=i + 5)).isoformat(),
-                "x": 500000.0,
-                "y": 4500100.0 + (i * 2.0),
-                "heading_deg": 0.0,
-            })
+            obs.append(
+                {
+                    "source_index": i + 5,
+                    "timestamp_utc": (t0 + timedelta(seconds=i + 5)).isoformat(),
+                    "x": 500000.0,
+                    "y": 4500100.0 + (i * 2.0),
+                    "heading_deg": 0.0,
+                }
+            )
 
         config = PassReconstructionConfig(max_distance_gap_m=30.0)
         result = reconstruct_passes(obs, config)
@@ -152,13 +166,62 @@ class PassReconstructionTests(unittest.TestCase):
     def test_header_disengage_split(self) -> None:
         t0 = datetime(2026, 10, 1, 12, 0, 0, tzinfo=timezone.utc)
         obs = [
-            {"source_index": 0, "timestamp_utc": (t0 + timedelta(seconds=0)).isoformat(), "x": 0.0, "y": 0.0, "header_engaged": True, "heading_deg": 0.0},
-            {"source_index": 1, "timestamp_utc": (t0 + timedelta(seconds=1)).isoformat(), "x": 0.0, "y": 2.0, "header_engaged": True, "heading_deg": 0.0},
-            {"source_index": 2, "timestamp_utc": (t0 + timedelta(seconds=2)).isoformat(), "x": 0.0, "y": 4.0, "header_engaged": True, "heading_deg": 0.0},
-            {"source_index": 3, "timestamp_utc": (t0 + timedelta(seconds=3)).isoformat(), "x": 0.0, "y": 6.0, "header_engaged": False, "heading_deg": 0.0},
-            {"source_index": 4, "timestamp_utc": (t0 + timedelta(seconds=4)).isoformat(), "x": 0.0, "y": 8.0, "header_engaged": True, "heading_deg": 0.0},
-            {"source_index": 5, "timestamp_utc": (t0 + timedelta(seconds=5)).isoformat(), "x": 0.0, "y": 10.0, "header_engaged": True, "heading_deg": 0.0},
-            {"source_index": 6, "timestamp_utc": (t0 + timedelta(seconds=6)).isoformat(), "x": 0.0, "y": 12.0, "header_engaged": True, "heading_deg": 0.0},
+            {
+                "source_index": 0,
+                "timestamp_utc": (t0 + timedelta(seconds=0)).isoformat(),
+                "x": 0.0,
+                "y": 0.0,
+                "header_engaged": True,
+                "heading_deg": 0.0,
+            },
+            {
+                "source_index": 1,
+                "timestamp_utc": (t0 + timedelta(seconds=1)).isoformat(),
+                "x": 0.0,
+                "y": 2.0,
+                "header_engaged": True,
+                "heading_deg": 0.0,
+            },
+            {
+                "source_index": 2,
+                "timestamp_utc": (t0 + timedelta(seconds=2)).isoformat(),
+                "x": 0.0,
+                "y": 4.0,
+                "header_engaged": True,
+                "heading_deg": 0.0,
+            },
+            {
+                "source_index": 3,
+                "timestamp_utc": (t0 + timedelta(seconds=3)).isoformat(),
+                "x": 0.0,
+                "y": 6.0,
+                "header_engaged": False,
+                "heading_deg": 0.0,
+            },
+            {
+                "source_index": 4,
+                "timestamp_utc": (t0 + timedelta(seconds=4)).isoformat(),
+                "x": 0.0,
+                "y": 8.0,
+                "header_engaged": True,
+                "heading_deg": 0.0,
+            },
+            {
+                "source_index": 5,
+                "timestamp_utc": (t0 + timedelta(seconds=5)).isoformat(),
+                "x": 0.0,
+                "y": 10.0,
+                "header_engaged": True,
+                "heading_deg": 0.0,
+            },
+            {
+                "source_index": 6,
+                "timestamp_utc": (t0 + timedelta(seconds=6)).isoformat(),
+                "x": 0.0,
+                "y": 12.0,
+                "header_engaged": True,
+                "heading_deg": 0.0,
+            },
         ]
         config = PassReconstructionConfig(split_on_header_disengage=True)
         result = reconstruct_passes(obs, config)
@@ -168,12 +231,54 @@ class PassReconstructionTests(unittest.TestCase):
     def test_multiple_machine_ids(self) -> None:
         t0 = datetime(2026, 10, 1, 12, 0, 0, tzinfo=timezone.utc)
         obs = [
-            {"source_index": 0, "timestamp_utc": (t0 + timedelta(seconds=0)).isoformat(), "x": 0.0, "y": 0.0, "machine_id": "Combine_A", "heading_deg": 0.0},
-            {"source_index": 1, "timestamp_utc": (t0 + timedelta(seconds=1)).isoformat(), "x": 0.0, "y": 2.0, "machine_id": "Combine_A", "heading_deg": 0.0},
-            {"source_index": 2, "timestamp_utc": (t0 + timedelta(seconds=2)).isoformat(), "x": 0.0, "y": 4.0, "machine_id": "Combine_A", "heading_deg": 0.0},
-            {"source_index": 3, "timestamp_utc": (t0 + timedelta(seconds=3)).isoformat(), "x": 10.0, "y": 0.0, "machine_id": "Combine_B", "heading_deg": 0.0},
-            {"source_index": 4, "timestamp_utc": (t0 + timedelta(seconds=4)).isoformat(), "x": 10.0, "y": 2.0, "machine_id": "Combine_B", "heading_deg": 0.0},
-            {"source_index": 5, "timestamp_utc": (t0 + timedelta(seconds=5)).isoformat(), "x": 10.0, "y": 4.0, "machine_id": "Combine_B", "heading_deg": 0.0},
+            {
+                "source_index": 0,
+                "timestamp_utc": (t0 + timedelta(seconds=0)).isoformat(),
+                "x": 0.0,
+                "y": 0.0,
+                "machine_id": "Combine_A",
+                "heading_deg": 0.0,
+            },
+            {
+                "source_index": 1,
+                "timestamp_utc": (t0 + timedelta(seconds=1)).isoformat(),
+                "x": 0.0,
+                "y": 2.0,
+                "machine_id": "Combine_A",
+                "heading_deg": 0.0,
+            },
+            {
+                "source_index": 2,
+                "timestamp_utc": (t0 + timedelta(seconds=2)).isoformat(),
+                "x": 0.0,
+                "y": 4.0,
+                "machine_id": "Combine_A",
+                "heading_deg": 0.0,
+            },
+            {
+                "source_index": 3,
+                "timestamp_utc": (t0 + timedelta(seconds=3)).isoformat(),
+                "x": 10.0,
+                "y": 0.0,
+                "machine_id": "Combine_B",
+                "heading_deg": 0.0,
+            },
+            {
+                "source_index": 4,
+                "timestamp_utc": (t0 + timedelta(seconds=4)).isoformat(),
+                "x": 10.0,
+                "y": 2.0,
+                "machine_id": "Combine_B",
+                "heading_deg": 0.0,
+            },
+            {
+                "source_index": 5,
+                "timestamp_utc": (t0 + timedelta(seconds=5)).isoformat(),
+                "x": 10.0,
+                "y": 4.0,
+                "machine_id": "Combine_B",
+                "heading_deg": 0.0,
+            },
         ]
         result = reconstruct_passes(obs)
         self.assertEqual(result.total_passes, 2)
@@ -182,10 +287,30 @@ class PassReconstructionTests(unittest.TestCase):
     def test_heading_estimation_when_missing(self) -> None:
         t0 = datetime(2026, 10, 1, 12, 0, 0, tzinfo=timezone.utc)
         obs = [
-            {"source_index": 0, "timestamp_utc": (t0 + timedelta(seconds=0)).isoformat(), "x": 0.0, "y": 0.0},
-            {"source_index": 1, "timestamp_utc": (t0 + timedelta(seconds=1)).isoformat(), "x": 10.0, "y": 0.0},
-            {"source_index": 2, "timestamp_utc": (t0 + timedelta(seconds=2)).isoformat(), "x": 20.0, "y": 0.0},
-            {"source_index": 3, "timestamp_utc": (t0 + timedelta(seconds=3)).isoformat(), "x": 30.0, "y": 0.0},
+            {
+                "source_index": 0,
+                "timestamp_utc": (t0 + timedelta(seconds=0)).isoformat(),
+                "x": 0.0,
+                "y": 0.0,
+            },
+            {
+                "source_index": 1,
+                "timestamp_utc": (t0 + timedelta(seconds=1)).isoformat(),
+                "x": 10.0,
+                "y": 0.0,
+            },
+            {
+                "source_index": 2,
+                "timestamp_utc": (t0 + timedelta(seconds=2)).isoformat(),
+                "x": 20.0,
+                "y": 0.0,
+            },
+            {
+                "source_index": 3,
+                "timestamp_utc": (t0 + timedelta(seconds=3)).isoformat(),
+                "x": 30.0,
+                "y": 0.0,
+            },
         ]
         result = reconstruct_passes(obs)
         self.assertEqual(result.total_passes, 1)

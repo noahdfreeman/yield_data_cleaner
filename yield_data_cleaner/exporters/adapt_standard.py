@@ -77,14 +77,8 @@ def export_adapt_standard_package(
     coverage_path.write_text(json.dumps(geojson_payload, indent=2), encoding="utf-8")
 
     # 2. Compute aggregate metrics
-    yields = [
-        float(y) for obs in accepted_obs
-        if (y := obs.get("yield_wet_mass_area")) is not None
-    ]
-    moistures = [
-        float(m) for obs in accepted_obs
-        if (m := obs.get("moisture_pct")) is not None
-    ]
+    yields = [float(y) for obs in accepted_obs if (y := obs.get("yield_wet_mass_area")) is not None]
+    moistures = [float(m) for obs in accepted_obs if (m := obs.get("moisture_pct")) is not None]
 
     mean_yield = (sum(yields) / len(yields)) if yields else 0.0
     mean_moisture = (sum(moistures) / len(moistures)) if moistures else 0.0

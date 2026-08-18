@@ -46,7 +46,9 @@ def apply_sensor_delays(
     if n == 0 or (flow_delay_s <= 0.0 and moisture_delay_s <= 0.0):
         return [dict(obs) for obs in observations]
 
-    timestamps: list[datetime | None] = [parse_timestamp(obs.get("timestamp_utc")) for obs in observations]
+    timestamps: list[datetime | None] = [
+        parse_timestamp(obs.get("timestamp_utc")) for obs in observations
+    ]
     adjusted_obs: list[dict[str, Any]] = [dict(obs) for obs in observations]
 
     # Group by pass_id
@@ -98,7 +100,9 @@ def apply_sensor_delays(
                 source_k = k + moist_shift
                 if source_k < len(indices):
                     source_idx = indices[source_k]
-                    adjusted_obs[target_idx]["moisture_pct"] = observations[source_idx].get("moisture_pct")
+                    adjusted_obs[target_idx]["moisture_pct"] = observations[source_idx].get(
+                        "moisture_pct"
+                    )
                 else:
                     adjusted_obs[target_idx]["moisture_pct"] = None
 
@@ -127,9 +131,11 @@ def estimate_flow_delay(
     for delay in candidate_delays:
         shifted = apply_sensor_delays(observations, flow_delay_s=delay)
         yield_vals = [
-            y for obs in shifted
+            y
+            for obs in shifted
             if (y_val := obs.get("yield_wet_mass_area")) is not None
-            and (y := float(y_val)) > 0 and math.isfinite(y)
+            and (y := float(y_val)) > 0
+            and math.isfinite(y)
         ]
         if len(yield_vals) >= 10:
             mean = sum(yield_vals) / len(yield_vals)
@@ -160,8 +166,8 @@ def estimate_flow_delay(
 
     evidence = (
         f"Optimal candidate delay {best_delay}s with relative variance depth {round(relative_depth * 100.0, 1)}%"
-        if is_stable else
-        f"Unstable delay curve (flat variance profile, {round(relative_depth * 100.0, 1)}% depth)"
+        if is_stable
+        else f"Unstable delay curve (flat variance profile, {round(relative_depth * 100.0, 1)}% depth)"
     )
 
     return DelayEstimationResult(

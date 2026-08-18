@@ -7,7 +7,6 @@ from typing import Sequence
 
 from .mapping_profile import MappingProfile
 
-
 AGLEADER_MAPPING = {
     "x": "Longitude",
     "y": "Latitude",
@@ -75,7 +74,14 @@ def match_vendor_preset(headers: Sequence[str]) -> str | None:
     norm_headers = {str(h).strip().lower() for h in headers}
 
     # Check Ag Leader signatures
-    agleader_sigs = {"yield (bu/ac)", "yield(bu/ac)", "moisture (%)", "moisture(%)", "speed (mph)", "width (ft)"}
+    agleader_sigs = {
+        "yield (bu/ac)",
+        "yield(bu/ac)",
+        "moisture (%)",
+        "moisture(%)",
+        "speed (mph)",
+        "width (ft)",
+    }
     if sum(1 for s in agleader_sigs if s in norm_headers) >= 2:
         return "agleader"
 

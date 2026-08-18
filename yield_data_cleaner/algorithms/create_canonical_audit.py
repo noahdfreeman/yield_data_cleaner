@@ -211,7 +211,9 @@ class CreateCanonicalAuditAlgorithm(QgsProcessingAlgorithm):
     @classmethod
     def _output_fields(cls, source_fields):
         output = QgsFields()
-        canonical_names_lower = {field.name.lower() for field in CANONICAL_FIELDS} | {"geometry_original"}
+        canonical_names_lower = {field.name.lower() for field in CANONICAL_FIELDS} | {
+            "geometry_original"
+        }
         used_lower: set[str] = set()
         source_names: dict[str, str] = {}
         for source_field in source_fields:

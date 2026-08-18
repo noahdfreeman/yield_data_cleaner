@@ -6,7 +6,7 @@ from __future__ import annotations
 import math
 from typing import Any, Mapping, Sequence
 
-from ..core.pass_reconstruction import euclidean_distance, get_point_coordinate
+from ..core.pass_reconstruction import get_point_coordinate
 from ..core.recipe import CleaningRecipe
 
 
@@ -59,7 +59,13 @@ def evaluate_local_outlier_filter(
 
     for obs in observations:
         y_val = None
-        for k in ("yield_dry_mass_area", "yield_wet_mass_area", "dry_yield_mass_area", "yield", "dry_yield"):
+        for k in (
+            "yield_dry_mass_area",
+            "yield_wet_mass_area",
+            "dry_yield_mass_area",
+            "yield",
+            "dry_yield",
+        ):
             val = obs.get(k)
             if val is not None:
                 y_val = val

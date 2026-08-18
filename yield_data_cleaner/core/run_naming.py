@@ -31,7 +31,9 @@ def build_run_stem(
         now = datetime.now()
         date_str = now.strftime("%Y-%m-%d_%H%M%S") if include_time else now.strftime("%Y-%m-%d")
     elif isinstance(run_date, datetime):
-        date_str = run_date.strftime("%Y-%m-%d_%H%M%S") if include_time else run_date.strftime("%Y-%m-%d")
+        date_str = (
+            run_date.strftime("%Y-%m-%d_%H%M%S") if include_time else run_date.strftime("%Y-%m-%d")
+        )
     else:
         date_str = run_date.isoformat()
 

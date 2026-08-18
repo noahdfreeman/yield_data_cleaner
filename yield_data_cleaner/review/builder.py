@@ -7,15 +7,12 @@ import base64
 import html
 import json
 import math
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from ..core.crop_profiles import crop_profile
 from ..core.filter_engine import CleaningRunResult
-from ..core.reason_codes import REASON_CODE_REGISTRY
 from ..core.units import kg_per_hectare_to_bushels_per_acre, m_per_s_to_mph
-from ..version import VERSION
 
 _CACHED_LOGO_DATA_URI: str | None = None
 
@@ -65,46 +62,66 @@ def _json_safe(val: Any) -> Any:
     return str(val)
 
 
-def _utm_to_latlon(easting: float, northing: float, zone_number: int = 15, northern: bool = True) -> tuple[float, float]:
+def _utm_to_latlon(
+    easting: float, northing: float, zone_number: int = 15, northern: bool = True
+) -> tuple[float, float]:
     """Convert UTM coordinates (meters) to WGS84 (latitude, longitude) in decimal degrees."""
     a = 6378137.0
     f = 1.0 / 298.257223563
     b = a * (1.0 - f)
     e = math.sqrt(1.0 - (b / a) ** 2)
-    e1 = (1.0 - math.sqrt(1.0 - e ** 2)) / (1.0 + math.sqrt(1.0 - e ** 2))
+    e1 = (1.0 - math.sqrt(1.0 - e**2)) / (1.0 + math.sqrt(1.0 - e**2))
 
     x = easting - 500000.0
     y = northing if northern else northing - 10000000.0
 
     k0 = 0.9996
     M = y / k0
-    mu = M / (a * (1.0 - (e ** 2) / 4.0 - 3.0 * (e ** 4) / 64.0 - 5.0 * (e ** 6) / 256.0))
+    mu = M / (a * (1.0 - (e**2) / 4.0 - 3.0 * (e**4) / 64.0 - 5.0 * (e**6) / 256.0))
 
     phi1_rad = (
         mu
-        + (3.0 * e1 / 2.0 - 27.0 * (e1 ** 3) / 32.0) * math.sin(2.0 * mu)
-        + (21.0 * (e1 ** 2) / 16.0 - 55.0 * (e1 ** 4) / 32.0) * math.sin(4.0 * mu)
-        + (151.0 * (e1 ** 3) / 96.0) * math.sin(6.0 * mu)
-        + (1097.0 * (e1 ** 4) / 512.0) * math.sin(8.0 * mu)
+        + (3.0 * e1 / 2.0 - 27.0 * (e1**3) / 32.0) * math.sin(2.0 * mu)
+        + (21.0 * (e1**2) / 16.0 - 55.0 * (e1**4) / 32.0) * math.sin(4.0 * mu)
+        + (151.0 * (e1**3) / 96.0) * math.sin(6.0 * mu)
+        + (1097.0 * (e1**4) / 512.0) * math.sin(8.0 * mu)
     )
 
     N1 = a / math.sqrt(1.0 - (e * math.sin(phi1_rad)) ** 2)
     T1 = math.tan(phi1_rad) ** 2
-    C1 = (e ** 2 / (1.0 - e ** 2)) * (math.cos(phi1_rad) ** 2)
-    R1 = a * (1.0 - e ** 2) / ((1.0 - (e * math.sin(phi1_rad)) ** 2) ** 1.5)
+    C1 = (e**2 / (1.0 - e**2)) * (math.cos(phi1_rad) ** 2)
+    R1 = a * (1.0 - e**2) / ((1.0 - (e * math.sin(phi1_rad)) ** 2) ** 1.5)
     D = x / (N1 * k0)
 
     lat_rad = phi1_rad - (N1 * math.tan(phi1_rad) / R1) * (
-        (D ** 2) / 2.0
-        - (5.0 + 3.0 * T1 + 10.0 * C1 - 4.0 * (C1 ** 2) - 9.0 * (e ** 2 / (1.0 - e ** 2))) * (D ** 4) / 24.0
-        + (61.0 + 90.0 * T1 + 298.0 * C1 + 45.0 * (T1 ** 2) - 252.0 * (e ** 2 / (1.0 - e ** 2)) - 3.0 * (C1 ** 2)) * (D ** 6) / 720.0
+        (D**2) / 2.0
+        - (5.0 + 3.0 * T1 + 10.0 * C1 - 4.0 * (C1**2) - 9.0 * (e**2 / (1.0 - e**2))) * (D**4) / 24.0
+        + (
+            61.0
+            + 90.0 * T1
+            + 298.0 * C1
+            + 45.0 * (T1**2)
+            - 252.0 * (e**2 / (1.0 - e**2))
+            - 3.0 * (C1**2)
+        )
+        * (D**6)
+        / 720.0
     )
 
     lon_origin = (zone_number - 1) * 6 - 180 + 3
     lon_rad = (
         D
-        - (1.0 + 2.0 * T1 + C1) * (D ** 3) / 6.0
-        + (5.0 - 2.0 * C1 + 28.0 * T1 - 3.0 * (C1 ** 2) + 8.0 * (e ** 2 / (1.0 - e ** 2)) + 24.0 * (T1 ** 2)) * (D ** 5) / 120.0
+        - (1.0 + 2.0 * T1 + C1) * (D**3) / 6.0
+        + (
+            5.0
+            - 2.0 * C1
+            + 28.0 * T1
+            - 3.0 * (C1**2)
+            + 8.0 * (e**2 / (1.0 - e**2))
+            + 24.0 * (T1**2)
+        )
+        * (D**5)
+        / 120.0
     ) / math.cos(phi1_rad)
 
     lat = math.degrees(lat_rad)
@@ -295,7 +312,7 @@ def generate_html_review(
 ) -> str:
     """Generate a self-contained, Leaflet-powered GIS before/after yield review web app."""
     crop = crop_profile(crop_code)
-    is_imperial = (unit_profile.lower() == "imperial")
+    is_imperial = unit_profile.lower() == "imperial"
     yield_unit = "bu/ac" if is_imperial else "kg/ha"
     speed_unit = "mph" if is_imperial else "m/s"
     swath_unit = "ft" if is_imperial else "m"
@@ -343,7 +360,13 @@ def generate_html_review(
 
         # Extract yield value
         y_val = None
-        for k in ("yield_dry_mass_area", "yield_wet_mass_area", "dry_yield_mass_area", "yield", "dry_yield"):
+        for k in (
+            "yield_dry_mass_area",
+            "yield_wet_mass_area",
+            "dry_yield_mass_area",
+            "yield",
+            "dry_yield",
+        ):
             val = obs.get(k)
             if val is not None:
                 num = _safe_float(val)
@@ -352,10 +375,18 @@ def generate_html_review(
                     break
 
         if y_val is not None:
-            disp_y = kg_per_hectare_to_bushels_per_acre(y_val, crop.test_weight_lb_per_bushel) if is_imperial else y_val
+            disp_y = (
+                kg_per_hectare_to_bushels_per_acre(y_val, crop.test_weight_lb_per_bushel)
+                if is_imperial
+                else y_val
+            )
             raw_yields.append(disp_y)
 
-            update = cleaning_result.observation_updates[i] if i < len(cleaning_result.observation_updates) else {}
+            update = (
+                cleaning_result.observation_updates[i]
+                if i < len(cleaning_result.observation_updates)
+                else {}
+            )
             if update.get("clean_status") == "accepted":
                 clean_yields.append(disp_y)
 
@@ -391,16 +422,34 @@ def generate_html_review(
             if v is not None and v > 0:
                 y_si = v
                 break
-        y_disp = (kg_per_hectare_to_bushels_per_acre(y_si, crop.test_weight_lb_per_bushel) if is_imperial else y_si) if y_si is not None else None
+        y_disp = (
+            (
+                kg_per_hectare_to_bushels_per_acre(y_si, crop.test_weight_lb_per_bushel)
+                if is_imperial
+                else y_si
+            )
+            if y_si is not None
+            else None
+        )
 
         m_pct = _safe_float(obs.get("moisture_pct"))
         spd_m_s = _safe_float(obs.get("speed_m_s"))
-        spd_disp = (m_per_s_to_mph(spd_m_s) if is_imperial else spd_m_s) if spd_m_s is not None else None
+        spd_disp = (
+            (m_per_s_to_mph(spd_m_s) if is_imperial else spd_m_s) if spd_m_s is not None else None
+        )
 
         swath_m = _safe_float(obs.get("swath_width_m"))
-        swath_disp = (round(swath_m * 3.28084, 1) if is_imperial else round(swath_m, 2)) if swath_m is not None else None
+        swath_disp = (
+            (round(swath_m * 3.28084, 1) if is_imperial else round(swath_m, 2))
+            if swath_m is not None
+            else None
+        )
 
-        update = cleaning_result.observation_updates[idx] if idx < len(cleaning_result.observation_updates) else {}
+        update = (
+            cleaning_result.observation_updates[idx]
+            if idx < len(cleaning_result.observation_updates)
+            else {}
+        )
         status = update.get("clean_status", "accepted")
         reasons = update.get("filter_reasons", "")
 
@@ -410,19 +459,21 @@ def generate_html_review(
             if k in obs and obs[k] is not None and _json_safe(obs[k]) is not None
         }
 
-        points_payload.append({
-            "lat": round(lat, 6),
-            "lon": round(lon, 6),
-            "yield": round(y_disp, 1) if y_disp is not None else None,
-            "moisture": round(m_pct, 1) if m_pct is not None else None,
-            "speed": round(spd_disp, 1) if spd_disp is not None else None,
-            "swath": swath_disp,
-            "pass_id": str(obs.get("pass_id") or "1"),
-            "status": status,
-            "reasons": reasons,
-            "id": str(obs.get("observation_id", idx)),
-            "raw": raw_props,
-        })
+        points_payload.append(
+            {
+                "lat": round(lat, 6),
+                "lon": round(lon, 6),
+                "yield": round(y_disp, 1) if y_disp is not None else None,
+                "moisture": round(m_pct, 1) if m_pct is not None else None,
+                "speed": round(spd_disp, 1) if spd_disp is not None else None,
+                "swath": swath_disp,
+                "pass_id": str(obs.get("pass_id") or "1"),
+                "status": status,
+                "reasons": reasons,
+                "id": str(obs.get("observation_id", idx)),
+                "raw": raw_props,
+            }
+        )
 
     center_lat = (sum(lats) / len(lats)) if lats else 39.8
     center_lon = (sum(lons) / len(lons)) if lons else -93.2
@@ -430,14 +481,22 @@ def generate_html_review(
     # Accurate physical acreage calculation
     grid_size_m = grid_size_ft * 0.3048 if is_imperial else grid_size_ft
     if total_area_m2 > 0:
-        estimated_area = round(total_area_m2 / 4046.8564224, 1) if is_imperial else round(total_area_m2 / 10000.0, 1)
+        estimated_area = (
+            round(total_area_m2 / 4046.8564224, 1)
+            if is_imperial
+            else round(total_area_m2 / 10000.0, 1)
+        )
     else:
         estimated_area = round(n_total * 0.0045, 1) if is_imperial else round(n_total * 0.0018, 1)
     area_label = f"{estimated_area:,.1f} acres" if is_imperial else f"{estimated_area:,.1f} ha"
 
     effective_boundary = boundary_coords
     if not effective_boundary:
-        all_pts = [(p["lat"], p["lon"]) for p in points_payload if p.get("lat") is not None and p.get("lon") is not None]
+        all_pts = [
+            (p["lat"], p["lon"])
+            for p in points_payload
+            if p.get("lat") is not None and p.get("lon") is not None
+        ]
         if len(all_pts) >= 3:
             hull = compute_points_convex_hull(all_pts)
             if len(hull) >= 3:
@@ -476,7 +535,9 @@ def generate_html_review(
     points_json_str = json.dumps(points_payload, default=_json_safe)
     grid_json_str = json.dumps(grid_payload, default=_json_safe) if grid_payload else "null"
     raw_keys_json = json.dumps(raw_attribute_keys, default=_json_safe)
-    boundary_json_str = json.dumps(effective_boundary, default=_json_safe) if effective_boundary else "null"
+    boundary_json_str = (
+        json.dumps(effective_boundary, default=_json_safe) if effective_boundary else "null"
+    )
 
     # Build raw attribute option tags
     raw_attr_options = "\n".join(
@@ -494,8 +555,8 @@ def generate_html_review(
     <title>Yield Data Review - {html.escape(field_name)}</title>
 
     <!-- Leaflet CSS & JS from standard CDNs with local fallbacks -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
         * {{ box-sizing: border-box; margin: 0; padding: 0; }}
@@ -1194,7 +1255,7 @@ def generate_html_review(
     </div>
 
     <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const pointsData = {points_json_str};
         const gridData = {grid_json_str};

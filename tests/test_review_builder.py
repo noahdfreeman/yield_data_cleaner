@@ -13,8 +13,18 @@ from yield_data_cleaner.review.builder import generate_html_review
 class ReviewBuilderTests(unittest.TestCase):
     def test_generate_html_review(self) -> None:
         obs = [
-            {"observation_id": "obs_1", "x": 500000.0, "y": 4500000.0, "yield_wet_mass_area": 10000.0},
-            {"observation_id": "obs_2", "x": 500002.0, "y": 4500000.0, "yield_wet_mass_area": 1000.0},
+            {
+                "observation_id": "obs_1",
+                "x": 500000.0,
+                "y": 4500000.0,
+                "yield_wet_mass_area": 10000.0,
+            },
+            {
+                "observation_id": "obs_2",
+                "x": 500002.0,
+                "y": 4500000.0,
+                "yield_wet_mass_area": 1000.0,
+            },
         ]
         result = CleaningRunResult(
             total_observations=2,

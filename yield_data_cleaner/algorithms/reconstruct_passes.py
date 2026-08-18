@@ -200,7 +200,9 @@ class ReconstructPassesAlgorithm(QgsProcessingAlgorithm):
             max_distance_gap_m=self.parameterAsDouble(parameters, self.MAX_DISTANCE_GAP, context),
             turn_angle_threshold_deg=self.parameterAsDouble(parameters, self.TURN_ANGLE, context),
             min_points_per_pass=self.parameterAsInt(parameters, self.MIN_POINTS, context),
-            split_on_header_disengage=self.parameterAsBool(parameters, self.SPLIT_ON_HEADER, context),
+            split_on_header_disengage=self.parameterAsBool(
+                parameters, self.SPLIT_ON_HEADER, context
+            ),
         )
         use_source = self.parameterAsBool(parameters, self.USE_SOURCE_PASSES, context)
 
@@ -216,7 +218,9 @@ class ReconstructPassesAlgorithm(QgsProcessingAlgorithm):
                 break
             features.append(feat)
             geom = feat.geometry()
-            pt_coord = (geom.asPoint().x(), geom.asPoint().y()) if (geom and not geom.isEmpty()) else None
+            pt_coord = (
+                (geom.asPoint().x(), geom.asPoint().y()) if (geom and not geom.isEmpty()) else None
+            )
 
             obs: dict[str, Any] = {"source_index": idx}
             if pt_coord:
@@ -267,7 +271,9 @@ class ReconstructPassesAlgorithm(QgsProcessingAlgorithm):
         for idx, feat in enumerate(features):
             if feedback.isCanceled():
                 break
-            update = result.observation_updates[idx] if idx < len(result.observation_updates) else {}
+            update = (
+                result.observation_updates[idx] if idx < len(result.observation_updates) else {}
+            )
             out_feat = QgsFeature(out_point_fields)
             out_feat.setGeometry(feat.geometry())
             for fname in field_names:

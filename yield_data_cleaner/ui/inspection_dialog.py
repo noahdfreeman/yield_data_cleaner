@@ -11,11 +11,9 @@ from qgis.PyQt.QtCore import QUrl, Qt
 from qgis.PyQt.QtGui import QColor, QDesktopServices, QGuiApplication
 from qgis.PyQt.QtWidgets import (
     QApplication,
-    QButtonGroup,
     QCheckBox,
     QComboBox,
     QDialog,
-    QDialogButtonBox,
     QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
@@ -40,8 +38,9 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 from qgis.core import (
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
     QgsFeature,
-    QgsFeatureSink,
     QgsField,
     QgsFields,
     QgsGeometry,
@@ -69,7 +68,7 @@ except ImportError:
     QgsMapToolZoom = None
     QgsRubberBand = None
 
-from ..boundaries.derivation import fill_polygon_holes, simplify_boundary_geometry
+from ..boundaries.derivation import fill_polygon_holes
 from ..compat import enum_member, qgis_field_type
 from ..core.column_detection import FIELD_ALIASES, detect_columns
 from ..core.crop_profiles import available_crops, crop_profile, detect_crop_code
@@ -94,6 +93,7 @@ from .map_styling import (
     style_layer_for_display,
     style_layer_with_attribute_and_ramp,
 )
+from ..review.builder import _utm_to_latlon
 from ..version import VERSION
 
 CANONICAL_FIELD_DISPLAY_LABELS = {
@@ -350,7 +350,9 @@ class ModalBoundaryVertexTool(QgsMapTool):
             try:
                 dist_sq, min_pt, after_idx, left_of = geom.closestSegmentWithContext(map_pt)
                 canvas_min = self.toCanvasCoordinates(min_pt)
-                pixel_dist = math.hypot(canvas_pt.x() - canvas_min.x(), canvas_pt.y() - canvas_min.y())
+                pixel_dist = math.hypot(
+                    canvas_pt.x() - canvas_min.x(), canvas_pt.y() - canvas_min.y()
+                )
                 if pixel_dist <= 14.0:
                     return (feat.id(), min_pt, after_idx)
             except Exception:
@@ -499,7 +501,9 @@ class ModalPointSelectTool(QgsMapTool):
         self.layer_getter = layer_getter
         self.on_selection_changed = on_selection_changed
         if QgsRubberBand is not None and canvas is not None:
-            self.rubber_band = QgsRubberBand(canvas, enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry"))
+            self.rubber_band = QgsRubberBand(
+                canvas, enum_member(QgsWkbTypes, "GeometryType", "PolygonGeometry")
+            )
             self.rubber_band.setColor(QColor(254, 240, 138, 90))
             self.rubber_band.setStrokeColor(QColor(202, 138, 4, 220))
             self.rubber_band.setWidth(2)
@@ -523,7 +527,9 @@ class ModalPointSelectTool(QgsMapTool):
             self.rubber_band.show()
 
     def canvasReleaseEvent(self, event):
-        if (event.button() == enum_member(Qt, "MouseButton", "LeftButton") or event.button() == 1) and self.is_dragging:
+        if (
+            event.button() == enum_member(Qt, "MouseButton", "LeftButton") or event.button() == 1
+        ) and self.is_dragging:
             self.is_dragging = False
             if self.rubber_band:
                 self.rubber_band.hide()
@@ -539,11 +545,17 @@ class ModalPointSelectTool(QgsMapTool):
                         end_point.x() + buffer_dist,
                         end_point.y() + buffer_dist,
                     )
-                shift = bool(event.modifiers() & enum_member(Qt, "KeyboardModifier", "ShiftModifier"))
+                shift = bool(
+                    event.modifiers() & enum_member(Qt, "KeyboardModifier", "ShiftModifier")
+                )
                 if shift:
-                    layer.selectByRect(rect, enum_member(QgsVectorLayer, "SelectBehavior", "AddToSelection"))
+                    layer.selectByRect(
+                        rect, enum_member(QgsVectorLayer, "SelectBehavior", "AddToSelection")
+                    )
                 else:
-                    layer.selectByRect(rect, enum_member(QgsVectorLayer, "SelectBehavior", "SetSelection"))
+                    layer.selectByRect(
+                        rect, enum_member(QgsVectorLayer, "SelectBehavior", "SetSelection")
+                    )
                 self.canvas.refresh()
                 if self.on_selection_changed:
                     self.on_selection_changed(list(layer.selectedFeatureIds()))
@@ -662,7 +674,9 @@ class YieldInputInspectionDialog(QDialog):
         bottom_layout = QHBoxLayout()
         self.reset_tool_button = QPushButton("Reset Tool")
         self.reset_tool_button.setObjectName("yieldDataCleanerResetButton")
-        self.reset_tool_button.setToolTip("Reset all inputs and results to start over with a new field")
+        self.reset_tool_button.setToolTip(
+            "Reset all inputs and results to start over with a new field"
+        )
         self.reset_tool_button.setStyleSheet(
             "QPushButton { background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 4px; padding: 6px 14px; font-weight: 600; } "
             "QPushButton:hover { background-color: #e2e8f0; color: #0f172a; border-color: #94a3b8; }"
@@ -746,7 +760,9 @@ class YieldInputInspectionDialog(QDialog):
         self.test_weight_spin.setRange(10.0, 100.0)
         self.test_weight_spin.setValue(56.0)
         self.test_weight_spin.setSuffix(" lb/bu")
-        self.test_weight_spin.setToolTip("Standard bushel test weight reference for crop yield conversions.")
+        self.test_weight_spin.setToolTip(
+            "Standard bushel test weight reference for crop yield conversions."
+        )
 
         self.standard_moisture_spin = QDoubleSpinBox()
         self.standard_moisture_spin.setRange(1.0, 40.0)
@@ -767,7 +783,13 @@ class YieldInputInspectionDialog(QDialog):
         mapping_layout.addLayout(assumptions)
         self.mapping_table = QTableWidget(len(FIELD_ALIASES), 5)
         self.mapping_table.setHorizontalHeaderLabels(
-            ("Canonical field", "Source column", "Unit / Format", "Representative values from file", "Evidence")
+            (
+                "Canonical field",
+                "Source column",
+                "Unit / Format",
+                "Representative values from file",
+                "Evidence",
+            )
         )
         self.mapping_table.verticalHeader().setVisible(False)
         resize_contents = enum_member(QHeaderView, "ResizeMode", "ResizeToContents")
@@ -878,10 +900,10 @@ class YieldInputInspectionDialog(QDialog):
         self.field_name = QLineEdit()
         self.field_name.setPlaceholderText("Automatically suggested from the boundary")
         self.output_parent_folder = QLineEdit()
-        self.output_parent_folder.setPlaceholderText(
-            "Choose a destination directory (Required)"
+        self.output_parent_folder.setPlaceholderText("Choose a destination directory (Required)")
+        self.output_parent_folder.setStyleSheet(
+            "border: 2px solid #dc2626; border-radius: 4px; padding: 4px;"
         )
-        self.output_parent_folder.setStyleSheet("border: 2px solid #dc2626; border-radius: 4px; padding: 4px;")
         browse = QPushButton("Browse...")
         browse.clicked.connect(lambda: self._browse_output_folder(self.output_parent_folder))
         folder_row = QHBoxLayout()
@@ -893,8 +915,10 @@ class YieldInputInspectionDialog(QDialog):
         )
         self.run_name_preview = QLabel()
         self.run_name_preview.setWordWrap(True)
-        
-        save_label = QLabel("<span style='color: #dc2626; font-weight: bold;'>*</span> Destination / Output folder:")
+
+        save_label = QLabel(
+            "<span style='color: #dc2626; font-weight: bold;'>*</span> Destination / Output folder:"
+        )
         form.addRow("Field / boundary name", self.field_name)
         form.addRow(save_label, folder_row)
         form.addRow("Analysis/output CRS", self.output_crs)
@@ -952,12 +976,16 @@ class YieldInputInspectionDialog(QDialog):
 
         self.prepare_zoom_in_btn = QPushButton("🔍+")
         self.prepare_zoom_in_btn.setToolTip("Zoom in on map canvas")
-        self.prepare_zoom_in_btn.clicked.connect(lambda: self.prepare_map_canvas.zoomIn() if self.prepare_map_canvas else None)
+        self.prepare_zoom_in_btn.clicked.connect(
+            lambda: self.prepare_map_canvas.zoomIn() if self.prepare_map_canvas else None
+        )
         ctrl_row.addWidget(self.prepare_zoom_in_btn)
 
         self.prepare_zoom_out_btn = QPushButton("🔍-")
         self.prepare_zoom_out_btn.setToolTip("Zoom out on map canvas")
-        self.prepare_zoom_out_btn.clicked.connect(lambda: self.prepare_map_canvas.zoomOut() if self.prepare_map_canvas else None)
+        self.prepare_zoom_out_btn.clicked.connect(
+            lambda: self.prepare_map_canvas.zoomOut() if self.prepare_map_canvas else None
+        )
         ctrl_row.addWidget(self.prepare_zoom_out_btn)
 
         self.prepare_zoom_full_btn = QPushButton("📐 Zoom Full")
@@ -986,15 +1014,21 @@ class YieldInputInspectionDialog(QDialog):
         self.prepare_legend_layout.setSpacing(6)
         map_group_layout.addWidget(self.prepare_legend_widget)
 
-        self.prepare_scale_label = QLabel("📏 <b>Scale:</b> 1:— &bull; <b>Display Units:</b> — &bull; <b>CRS:</b> —")
-        self.prepare_scale_label.setStyleSheet("color: #475569; font-size: 11px; padding: 4px 8px; background: #f1f5f9; border-radius: 4px; border: 1px solid #e2e8f0;")
+        self.prepare_scale_label = QLabel(
+            "📏 <b>Scale:</b> 1:— &bull; <b>Display Units:</b> — &bull; <b>CRS:</b> —"
+        )
+        self.prepare_scale_label.setStyleSheet(
+            "color: #475569; font-size: 11px; padding: 4px 8px; background: #f1f5f9; border-radius: 4px; border: 1px solid #e2e8f0;"
+        )
         map_group_layout.addWidget(self.prepare_scale_label)
 
         if self.prepare_map_canvas is not None:
             self.prepare_map_canvas.scaleChanged.connect(self._update_prepare_scale)
             self.prepare_map_canvas.extentsChanged.connect(self._update_prepare_scale)
 
-        self.prepare_attribute_combo.currentIndexChanged.connect(self._apply_prepare_preview_styling)
+        self.prepare_attribute_combo.currentIndexChanged.connect(
+            self._apply_prepare_preview_styling
+        )
         self.prepare_ramp_combo.currentIndexChanged.connect(self._apply_prepare_preview_styling)
 
         self.prepare_map_group.setVisible(True)
@@ -1015,7 +1049,11 @@ class YieldInputInspectionDialog(QDialog):
             self.prepare_map_canvas.setMapTool(self.prepare_pan_tool)
 
     def _zoom_prepare_full(self):
-        if self.prepare_map_canvas is not None and hasattr(self, "current_prepared_layer") and self.current_prepared_layer:
+        if (
+            self.prepare_map_canvas is not None
+            and hasattr(self, "current_prepared_layer")
+            and self.current_prepared_layer
+        ):
             self.prepare_map_canvas.setExtent(self.current_prepared_layer.extent())
             self.prepare_map_canvas.refresh()
             self._update_prepare_scale()
@@ -1025,7 +1063,11 @@ class YieldInputInspectionDialog(QDialog):
             return
         scale = self.prepare_map_canvas.scale()
         crs_auth = "Unresolved"
-        if hasattr(self, "current_prepared_layer") and self.current_prepared_layer and self.current_prepared_layer.isValid():
+        if (
+            hasattr(self, "current_prepared_layer")
+            and self.current_prepared_layer
+            and self.current_prepared_layer.isValid()
+        ):
             crs_auth = self.current_prepared_layer.crs().authid()
         is_metric = str(self.units_combo.currentData() or "imperial") == "metric"
         unit_str = "Metric (Meters, kg/ha)" if is_metric else "Imperial (Feet, bu/ac)"
@@ -1034,7 +1076,11 @@ class YieldInputInspectionDialog(QDialog):
         )
 
     def _update_prepare_legend(self):
-        if not hasattr(self, "prepare_legend_layout") or not self.current_prepared_layer or not self.current_prepared_layer.isValid():
+        if (
+            not hasattr(self, "prepare_legend_layout")
+            or not self.current_prepared_layer
+            or not self.current_prepared_layer.isValid()
+        ):
             return
         while self.prepare_legend_layout.count():
             item = self.prepare_legend_layout.takeAt(0)
@@ -1069,14 +1115,18 @@ class YieldInputInspectionDialog(QDialog):
                 low = item["lower"]
                 up = item["upper"]
                 if "yield" in attr and not is_metric:
-                    tw = float(self.test_weight_spin.value() if hasattr(self, "test_weight_spin") else 56.0)
+                    tw = float(
+                        self.test_weight_spin.value() if hasattr(self, "test_weight_spin") else 56.0
+                    )
                     if low > 300 or up > 300:
                         low = kg_per_hectare_to_bushels_per_acre(low, tw)
                         up = kg_per_hectare_to_bushels_per_acre(up, tw)
                 label_text = f"{low:.1f} – {up:.1f} {unit_label}".strip()
 
             chip = QLabel(f"<span style='color: {color}; font-size: 14px;'>■</span> {label_text}")
-            chip.setStyleSheet("font-size: 11px; color: #334155; padding: 2px 6px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px;")
+            chip.setStyleSheet(
+                "font-size: 11px; color: #334155; padding: 2px 6px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px;"
+            )
             self.prepare_legend_layout.addWidget(chip)
 
         self.prepare_legend_layout.addStretch(1)
@@ -1189,15 +1239,21 @@ class YieldInputInspectionDialog(QDialog):
         # Cleanup & vertex modification toolbar
         tools_row = QHBoxLayout()
         self.fill_holes_btn = QPushButton("🧹 Remove Interior Holes")
-        self.fill_holes_btn.setToolTip("Remove all interior holes/slivers from the boundary polygon")
+        self.fill_holes_btn.setToolTip(
+            "Remove all interior holes/slivers from the boundary polygon"
+        )
         self.fill_holes_btn.clicked.connect(self._fill_boundary_holes)
 
         self.simplify_bnd_btn = QPushButton("✨ Smooth / Simplify (-15%)")
-        self.simplify_bnd_btn.setToolTip("Smooth boundary geometry by removing ~15% of vertices per click")
+        self.simplify_bnd_btn.setToolTip(
+            "Smooth boundary geometry by removing ~15% of vertices per click"
+        )
         self.simplify_bnd_btn.clicked.connect(self._simplify_boundary)
 
         self.densify_bnd_btn = QPushButton("➕ Densify / Add Vertices (+15%)")
-        self.densify_bnd_btn.setToolTip("Add ~15% intermediate vertices along boundary segments to increase detail")
+        self.densify_bnd_btn.setToolTip(
+            "Add ~15% intermediate vertices along boundary segments to increase detail"
+        )
         self.densify_bnd_btn.clicked.connect(self._densify_boundary)
 
         self.edit_vertices_btn = QPushButton("✏️ Edit Vertices (In-Modal)")
@@ -1211,18 +1267,24 @@ class YieldInputInspectionDialog(QDialog):
 
         self.zoom_in_bnd_btn = QPushButton("🔍+")
         self.zoom_in_bnd_btn.setToolTip("Zoom in on boundary canvas")
-        self.zoom_in_bnd_btn.clicked.connect(lambda: self.boundary_map_canvas.zoomIn() if self.boundary_map_canvas else None)
+        self.zoom_in_bnd_btn.clicked.connect(
+            lambda: self.boundary_map_canvas.zoomIn() if self.boundary_map_canvas else None
+        )
 
         self.zoom_out_bnd_btn = QPushButton("🔍-")
         self.zoom_out_bnd_btn.setToolTip("Zoom out on boundary canvas")
-        self.zoom_out_bnd_btn.clicked.connect(lambda: self.boundary_map_canvas.zoomOut() if self.boundary_map_canvas else None)
+        self.zoom_out_bnd_btn.clicked.connect(
+            lambda: self.boundary_map_canvas.zoomOut() if self.boundary_map_canvas else None
+        )
 
         self.zoom_full_bnd_btn = QPushButton("📐 Zoom Full")
         self.zoom_full_bnd_btn.setToolTip("Zoom to full extent of boundary")
         self.zoom_full_bnd_btn.clicked.connect(self._zoom_boundary_full)
 
         self.reset_bnd_btn = QPushButton("↶ Reset Original")
-        self.reset_bnd_btn.setToolTip("Revert any hole removals or edits back to the original boundary")
+        self.reset_bnd_btn.setToolTip(
+            "Revert any hole removals or edits back to the original boundary"
+        )
         self.reset_bnd_btn.clicked.connect(self._reset_boundary_preview)
 
         tools_row.addWidget(self.fill_holes_btn)
@@ -1236,7 +1298,9 @@ class YieldInputInspectionDialog(QDialog):
         tools_row.addWidget(self.reset_bnd_btn)
 
         self.bnd_vertex_count_label = QLabel("")
-        self.bnd_vertex_count_label.setStyleSheet("color: #0369a1; font-weight: bold; padding: 2px 6px;")
+        self.bnd_vertex_count_label.setStyleSheet(
+            "color: #0369a1; font-weight: bold; padding: 2px 6px;"
+        )
         tools_row.addWidget(self.bnd_vertex_count_label)
 
         tools_row.addStretch(1)
@@ -1602,9 +1666,6 @@ class YieldInputInspectionDialog(QDialog):
                     boundary_layer = existing_boundary
                 if boundary_layer is None or not boundary_layer.isValid():
                     raise ValueError("The selected boundary layer could not be opened")
-
-                feat_count = boundary_layer.featureCount()
-                detail = f"Existing boundary loaded successfully ({feat_count:,} polygon feature{'s' if feat_count != 1 else ''})."
             else:
                 # Derive operational boundary from yield points
                 import processing
@@ -1633,7 +1694,6 @@ class YieldInputInspectionDialog(QDialog):
                         boundary_layer = QgsVectorLayer(str(out_uri), "Derived Boundary", "ogr")
                     if boundary_layer is None or not boundary_layer.isValid():
                         raise ValueError("Failed to derive operational field boundary from points")
-                    detail = "Operational field boundary derived from yield points."
                 finally:
                     QApplication.restoreOverrideCursor()
 
@@ -1652,7 +1712,9 @@ class YieldInputInspectionDialog(QDialog):
             }
 
             # Apply initial default simplification: default to 50% vertices for cleaner boundary
-            raw_v = sum(self._count_geom_vertices(g) for g in self.original_boundary_geometries.values())
+            raw_v = sum(
+                self._count_geom_vertices(g) for g in self.original_boundary_geometries.values()
+            )
             if raw_v > 8:
                 boundary_layer.startEditing()
                 for feat in boundary_layer.getFeatures():
@@ -1662,7 +1724,9 @@ class YieldInputInspectionDialog(QDialog):
                         boundary_layer.changeGeometry(feat.id(), simp_g)
                 boundary_layer.commitChanges()
 
-            curr_v = sum(self._count_geom_vertices(f.geometry()) for f in boundary_layer.getFeatures())
+            curr_v = sum(
+                self._count_geom_vertices(f.geometry()) for f in boundary_layer.getFeatures()
+            )
             if hasattr(self, "bnd_vertex_count_label"):
                 self.bnd_vertex_count_label.setText(f"Vertices: {curr_v} (50% default)")
 
@@ -1675,7 +1739,9 @@ class YieldInputInspectionDialog(QDialog):
 
             self._style_button_completed(self.import_create_boundary_button, "✓ Boundary Ready")
             self.boundary_continue_button.setEnabled(True)
-            self._style_button_action_needed(self.boundary_continue_button, "Continue to Prepare Dataset")
+            self._style_button_action_needed(
+                self.boundary_continue_button, "Continue to Prepare Dataset"
+            )
 
         except Exception as exc:
             QMessageBox.warning(self, PLUGIN_NAME, str(exc))
@@ -1700,7 +1766,9 @@ class YieldInputInspectionDialog(QDialog):
         target_v = max(4, int(round(v_orig * ratio)))
 
         sample_pt = geom.centroid().asPoint() if geom.centroid() else None
-        is_geo = (sample_pt and 10.0 < abs(sample_pt.x()) <= 180.0 and 10.0 < abs(sample_pt.y()) <= 90.0)
+        is_geo = (
+            sample_pt and 10.0 < abs(sample_pt.x()) <= 180.0 and 10.0 < abs(sample_pt.y()) <= 90.0
+        )
         low_tol = 1e-7
         high_tol = 0.005 if is_geo else 20.0
         best_geom = geom
@@ -1739,13 +1807,16 @@ class YieldInputInspectionDialog(QDialog):
         return geom
 
     def _fill_boundary_holes(self):
-        if not hasattr(self, "current_preview_boundary_layer") or not self.current_preview_boundary_layer or not self.current_preview_boundary_layer.isValid():
+        if (
+            not hasattr(self, "current_preview_boundary_layer")
+            or not self.current_preview_boundary_layer
+            or not self.current_preview_boundary_layer.isValid()
+        ):
             QMessageBox.information(self, PLUGIN_NAME, "Import or create a boundary first.")
             return
         layer = self.current_preview_boundary_layer
         try:
             layer.startEditing()
-            modified = False
             v_before = 0
             v_after = 0
             for feat in layer.getFeatures():
@@ -1755,7 +1826,6 @@ class YieldInputInspectionDialog(QDialog):
                 if filled_geom and not filled_geom.isEmpty():
                     layer.changeGeometry(feat.id(), filled_geom)
                     v_after += self._count_geom_vertices(filled_geom)
-                    modified = True
                 else:
                     v_after += self._count_geom_vertices(orig_geom)
             layer.commitChanges()
@@ -1772,7 +1842,11 @@ class YieldInputInspectionDialog(QDialog):
             QMessageBox.warning(self, PLUGIN_NAME, f"Could not remove holes: {exc}")
 
     def _simplify_boundary(self):
-        if not hasattr(self, "current_preview_boundary_layer") or not self.current_preview_boundary_layer or not self.current_preview_boundary_layer.isValid():
+        if (
+            not hasattr(self, "current_preview_boundary_layer")
+            or not self.current_preview_boundary_layer
+            or not self.current_preview_boundary_layer.isValid()
+        ):
             QMessageBox.information(self, PLUGIN_NAME, "Import or create a boundary first.")
             return
         layer = self.current_preview_boundary_layer
@@ -1806,7 +1880,11 @@ class YieldInputInspectionDialog(QDialog):
             QMessageBox.warning(self, PLUGIN_NAME, f"Could not simplify boundary: {exc}")
 
     def _densify_boundary(self):
-        if not hasattr(self, "current_preview_boundary_layer") or not self.current_preview_boundary_layer or not self.current_preview_boundary_layer.isValid():
+        if (
+            not hasattr(self, "current_preview_boundary_layer")
+            or not self.current_preview_boundary_layer
+            or not self.current_preview_boundary_layer.isValid()
+        ):
             QMessageBox.information(self, PLUGIN_NAME, "Import or create a boundary first.")
             return
         layer = self.current_preview_boundary_layer
@@ -1840,7 +1918,11 @@ class YieldInputInspectionDialog(QDialog):
             QMessageBox.warning(self, PLUGIN_NAME, f"Could not densify boundary: {exc}")
 
     def _toggle_inmodal_vertex_editor(self, active: bool):
-        if not hasattr(self, "current_preview_boundary_layer") or not self.current_preview_boundary_layer or not self.current_preview_boundary_layer.isValid():
+        if (
+            not hasattr(self, "current_preview_boundary_layer")
+            or not self.current_preview_boundary_layer
+            or not self.current_preview_boundary_layer.isValid()
+        ):
             self.edit_vertices_btn.blockSignals(True)
             self.edit_vertices_btn.setChecked(False)
             self.edit_vertices_btn.blockSignals(False)
@@ -1858,7 +1940,9 @@ class YieldInputInspectionDialog(QDialog):
                 self.boundary_map_canvas.setMapTool(self.vertex_tool)
             self.vertex_guide_label.setVisible(True)
             self.edit_vertices_btn.setText("✓ Done Editing Vertices")
-            self.edit_vertices_btn.setStyleSheet("background-color: #16a34a; color: white; font-weight: bold;")
+            self.edit_vertices_btn.setStyleSheet(
+                "background-color: #16a34a; color: white; font-weight: bold;"
+            )
         else:
             if hasattr(self, "vertex_tool") and self.vertex_tool:
                 self.vertex_tool.clear()
@@ -1877,7 +1961,11 @@ class YieldInputInspectionDialog(QDialog):
             self.boundary_map_canvas.setMapTool(self.boundary_pan_tool)
 
     def _zoom_boundary_full(self):
-        if self.boundary_map_canvas is not None and hasattr(self, "current_preview_boundary_layer") and self.current_preview_boundary_layer:
+        if (
+            self.boundary_map_canvas is not None
+            and hasattr(self, "current_preview_boundary_layer")
+            and self.current_preview_boundary_layer
+        ):
             self.boundary_map_canvas.setExtent(self.current_preview_boundary_layer.extent())
             self.boundary_map_canvas.refresh()
 
@@ -1886,7 +1974,10 @@ class YieldInputInspectionDialog(QDialog):
             self.iface.mapCanvas().refresh()
 
     def _reset_boundary_preview(self):
-        if not hasattr(self, "original_boundary_geometries") or not self.original_boundary_geometries:
+        if (
+            not hasattr(self, "original_boundary_geometries")
+            or not self.original_boundary_geometries
+        ):
             QMessageBox.information(self, PLUGIN_NAME, "No original boundary backup available.")
             return
         layer = self.current_preview_boundary_layer
@@ -1903,7 +1994,9 @@ class YieldInputInspectionDialog(QDialog):
             if self.iface and self.iface.mapCanvas():
                 self.iface.mapCanvas().refresh()
             if hasattr(self, "bnd_vertex_count_label"):
-                total_v = sum(self._count_geom_vertices(g) for g in self.original_boundary_geometries.values())
+                total_v = sum(
+                    self._count_geom_vertices(g) for g in self.original_boundary_geometries.values()
+                )
                 self.bnd_vertex_count_label.setText(f"Reset • Vertices: {total_v}")
         except Exception as exc:
             QMessageBox.warning(self, PLUGIN_NAME, f"Could not reset boundary: {exc}")
@@ -2000,12 +2093,20 @@ class YieldInputInspectionDialog(QDialog):
                     "ogr",
                 )
 
-            if hasattr(self, "current_preview_boundary_layer") and self.current_preview_boundary_layer and self.current_preview_boundary_layer.isValid() and self.current_preview_boundary_layer.featureCount() > 0:
+            if (
+                hasattr(self, "current_preview_boundary_layer")
+                and self.current_preview_boundary_layer
+                and self.current_preview_boundary_layer.isValid()
+                and self.current_preview_boundary_layer.featureCount() > 0
+            ):
                 from qgis.core import QgsVectorFileWriter
+
                 write_opts = QgsVectorFileWriter.SaveVectorOptions()
                 write_opts.driverName = "GPKG"
                 write_opts.layerName = "field_boundary"
-                write_opts.actionOnExistingFile = QgsVectorFileWriter.ActionOnExistingFile.CreateOrOverwriteLayer
+                write_opts.actionOnExistingFile = (
+                    QgsVectorFileWriter.ActionOnExistingFile.CreateOrOverwriteLayer
+                )
                 QgsVectorFileWriter.writeAsVectorFormatV3(
                     self.current_preview_boundary_layer,
                     str(paths["geopackage"]),
@@ -2072,7 +2173,11 @@ class YieldInputInspectionDialog(QDialog):
                     self.prepare_attribute_combo.addItem(label, field_name)
 
                 # Add all additional original dataset columns
-                standard_internal = {item[1] for item in standard_fields} | {"observation_id", "source_index", "geometry"}
+                standard_internal = {item[1] for item in standard_fields} | {
+                    "observation_id",
+                    "source_index",
+                    "geometry",
+                }
                 for f in prepared_layer.fields():
                     fn = f.name()
                     if fn not in standard_internal:
@@ -2096,8 +2201,12 @@ class YieldInputInspectionDialog(QDialog):
             except Exception:
                 pass
 
-            self._style_button_completed(self.create_dataset_button, "✓ Prepared Yield Dataset Created")
-            self._style_button_action_needed(self.prepare_continue_button, "Continue to Clean & Review")
+            self._style_button_completed(
+                self.create_dataset_button, "✓ Prepared Yield Dataset Created"
+            )
+            self._style_button_action_needed(
+                self.prepare_continue_button, "Continue to Clean & Review"
+            )
 
             review_text = (
                 "Review the derived field boundary on the map before using it."
@@ -2191,7 +2300,9 @@ class YieldInputInspectionDialog(QDialog):
             self.inspect_button.setText("Inspecting input... Please wait...")
         if hasattr(self, "inspect_progress"):
             self.inspect_progress.setVisible(True)
-        self.results.setHtml("<h3>Inspecting input...</h3><p>Analyzing fields, coordinates, and column suggestions. Please wait...</p>")
+        self.results.setHtml(
+            "<h3>Inspecting input...</h3><p>Analyzing fields, coordinates, and column suggestions. Please wait...</p>"
+        )
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         QApplication.processEvents()
         try:
@@ -2305,9 +2416,12 @@ class YieldInputInspectionDialog(QDialog):
             )
         else:
             missing_req = []
-            if not flow_col: missing_req.append("Mass Flow")
-            if not speed_col: missing_req.append("Speed / Velocity")
-            if not swath_col: missing_req.append("Swath Width")
+            if not flow_col:
+                missing_req.append("Mass Flow")
+            if not speed_col:
+                missing_req.append("Speed / Velocity")
+            if not swath_col:
+                missing_req.append("Swath Width")
             advisory_items.append(
                 f"<li style='color: #b91c1c;'><b>⚠️ Yield Data Incomplete:</b> No direct dry yield column mapped and calculation fields ({', '.join(missing_req)}) are missing. "
                 "Please review column mappings in the table below.</li>"
@@ -2367,12 +2481,20 @@ class YieldInputInspectionDialog(QDialog):
             f_kg_s = f_lb_s * 0.45359237
             s_m_s = s_mph * (1609.344 / 3600.0)
             w_m = w_ft * 0.3048
-            std_m = float(self.standard_moisture_spin.value() if hasattr(self, "standard_moisture_spin") else 15.5)
+            std_m = float(
+                self.standard_moisture_spin.value()
+                if hasattr(self, "standard_moisture_spin")
+                else 15.5
+            )
             tw = float(self.test_weight_spin.value() if hasattr(self, "test_weight_spin") else 56.0)
 
             area_rate_m2_s = s_m_s * w_m
             wet_kg_ha = (f_kg_s / area_rate_m2_s) * 10000.0 if area_rate_m2_s > 0 else 0.0
-            dry_kg_ha = wet_kg_ha * ((100.0 - m_val) / (100.0 - std_m)) if (100.0 - std_m) > 0 else wet_kg_ha
+            dry_kg_ha = (
+                wet_kg_ha * ((100.0 - m_val) / (100.0 - std_m))
+                if (100.0 - std_m) > 0
+                else wet_kg_ha
+            )
             calc_bu_ac = dry_kg_ha / (tw * 1.12085) if tw > 0 else 0.0
 
             direct_note = ""
@@ -2477,15 +2599,27 @@ class YieldInputInspectionDialog(QDialog):
         if not combo:
             return
         col_name = combo.currentData()
-        sample_val = getattr(self, "current_sample_values", {}).get(col_name, "—") if col_name else "—"
+        sample_val = (
+            getattr(self, "current_sample_values", {}).get(col_name, "—") if col_name else "—"
+        )
         val_item = self.mapping_table.item(row, 3)
         if val_item:
             val_item.setText(sample_val)
 
         canonical = list(FIELD_ALIASES.keys())[row] if row < len(FIELD_ALIASES) else None
         unit_combo = self.mapping_table.cellWidget(row, 2)
-        if canonical in {"yield_dry_mass_area", "yield_wet_mass_area"} and unit_combo and sample_val != "—":
-            clean_str = sample_val.replace("–", ",").replace("-", ",").replace("(", ",").replace(")", ",").replace("range:", "")
+        if (
+            canonical in {"yield_dry_mass_area", "yield_wet_mass_area"}
+            and unit_combo
+            and sample_val != "—"
+        ):
+            clean_str = (
+                sample_val.replace("–", ",")
+                .replace("-", ",")
+                .replace("(", ",")
+                .replace(")", ",")
+                .replace("range:", "")
+            )
             nums = []
             for part in clean_str.split(","):
                 part_clean = part.strip().replace("'", "").replace('"', "")
@@ -2782,7 +2916,9 @@ class YieldInputInspectionDialog(QDialog):
         self.grid_size_spin.setRange(5.0, 500.0)
         self.grid_size_spin.setValue(30.0)
         self.grid_size_spin.setSuffix(" ft")
-        self.grid_size_spin.setToolTip("Interpolated yield surface grid cell resolution for the HTML review map")
+        self.grid_size_spin.setToolTip(
+            "Interpolated yield surface grid cell resolution for the HTML review map"
+        )
         filter_grid.addWidget(QLabel("-"), 14, 0)
         filter_grid.addWidget(self.grid_size_spin, 14, 1)
         filter_grid.addWidget(QLabel("HTML Surface Grid"), 14, 2)
@@ -2796,19 +2932,35 @@ class YieldInputInspectionDialog(QDialog):
 
         # Wire all recipe parameter inputs to signal re-execution readiness
         for spin in (
-            self.flow_delay_spin, self.moisture_delay_spin, self.trim_start_spin,
-            self.trim_end_spin, self.max_speed_spin, self.min_speed_spin,
-            self.min_swath_spin, self.max_yield_spin, self.min_yield_spin,
-            self.outlier_std_spin, self.outlier_radius_spin, self.overlap_dist_spin,
-            self.grid_size_spin
+            self.flow_delay_spin,
+            self.moisture_delay_spin,
+            self.trim_start_spin,
+            self.trim_end_spin,
+            self.max_speed_spin,
+            self.min_speed_spin,
+            self.min_swath_spin,
+            self.max_yield_spin,
+            self.min_yield_spin,
+            self.outlier_std_spin,
+            self.outlier_radius_spin,
+            self.overlap_dist_spin,
+            self.grid_size_spin,
         ):
             spin.valueChanged.connect(self._on_recipe_parameter_changed)
 
         for chk in (
-            self.flow_delay_check, self.moisture_delay_check, self.pass_start_check,
-            self.pass_end_check, self.max_speed_check, self.min_speed_check,
-            self.min_swath_check, self.max_yield_check, self.min_yield_check,
-            self.outlier_check, self.overlap_check, self.header_req_check
+            self.flow_delay_check,
+            self.moisture_delay_check,
+            self.pass_start_check,
+            self.pass_end_check,
+            self.max_speed_check,
+            self.min_speed_check,
+            self.min_swath_check,
+            self.max_yield_check,
+            self.min_yield_check,
+            self.outlier_check,
+            self.overlap_check,
+            self.header_req_check,
         ):
             chk.toggled.connect(self._on_recipe_parameter_changed)
 
@@ -2870,17 +3022,23 @@ class YieldInputInspectionDialog(QDialog):
         self.clean_select_tool_btn = QPushButton("🔲 Select Points (Drag Box)")
         self.clean_select_tool_btn.setCheckable(True)
         self.clean_select_tool_btn.setChecked(True)
-        self.clean_select_tool_btn.setToolTip("Click and drag a box on the map to select points for manual cleanup")
+        self.clean_select_tool_btn.setToolTip(
+            "Click and drag a box on the map to select points for manual cleanup"
+        )
         self.clean_select_tool_btn.toggled.connect(self._toggle_clean_selection_tool)
         ctrl_row.addWidget(self.clean_select_tool_btn)
 
         self.exclude_selected_btn = QPushButton("❌ Exclude Selected (Delete)")
-        self.exclude_selected_btn.setToolTip("Manually exclude selected points from cleaned yield dataset")
+        self.exclude_selected_btn.setToolTip(
+            "Manually exclude selected points from cleaned yield dataset"
+        )
         self.exclude_selected_btn.clicked.connect(self._exclude_selected_points)
         ctrl_row.addWidget(self.exclude_selected_btn)
 
         self.restore_selected_btn = QPushButton("♻️ Restore Selected (Un-delete)")
-        self.restore_selected_btn.setToolTip("Restore manually excluded selected points back to accepted")
+        self.restore_selected_btn.setToolTip(
+            "Restore manually excluded selected points back to accepted"
+        )
         self.restore_selected_btn.clicked.connect(self._restore_selected_points)
         ctrl_row.addWidget(self.restore_selected_btn)
 
@@ -2895,11 +3053,15 @@ class YieldInputInspectionDialog(QDialog):
         ctrl_row.addWidget(self.clean_pan_btn)
 
         self.clean_zoom_in_btn = QPushButton("🔍+")
-        self.clean_zoom_in_btn.clicked.connect(lambda: self.clean_map_canvas.zoomIn() if self.clean_map_canvas else None)
+        self.clean_zoom_in_btn.clicked.connect(
+            lambda: self.clean_map_canvas.zoomIn() if self.clean_map_canvas else None
+        )
         ctrl_row.addWidget(self.clean_zoom_in_btn)
 
         self.clean_zoom_out_btn = QPushButton("🔍-")
-        self.clean_zoom_out_btn.clicked.connect(lambda: self.clean_map_canvas.zoomOut() if self.clean_map_canvas else None)
+        self.clean_zoom_out_btn.clicked.connect(
+            lambda: self.clean_map_canvas.zoomOut() if self.clean_map_canvas else None
+        )
         ctrl_row.addWidget(self.clean_zoom_out_btn)
 
         self.clean_zoom_full_btn = QPushButton("📐 Zoom Full")
@@ -2907,7 +3069,9 @@ class YieldInputInspectionDialog(QDialog):
         ctrl_row.addWidget(self.clean_zoom_full_btn)
 
         self.clean_selection_label = QLabel("Selected: 0 points")
-        self.clean_selection_label.setStyleSheet("color: #0369a1; font-weight: bold; padding: 2px 6px;")
+        self.clean_selection_label.setStyleSheet(
+            "color: #0369a1; font-weight: bold; padding: 2px 6px;"
+        )
         ctrl_row.addWidget(self.clean_selection_label)
 
         ctrl_row.addStretch(1)
@@ -2928,8 +3092,12 @@ class YieldInputInspectionDialog(QDialog):
         self.clean_legend_layout.setSpacing(6)
         clean_map_layout.addWidget(self.clean_legend_widget)
 
-        self.clean_scale_label = QLabel("📏 <b>Scale:</b> 1:— &bull; <b>Display Units:</b> — &bull; <b>CRS:</b> —")
-        self.clean_scale_label.setStyleSheet("color: #475569; font-size: 11px; padding: 4px 8px; background: #f1f5f9; border-radius: 4px; border: 1px solid #e2e8f0;")
+        self.clean_scale_label = QLabel(
+            "📏 <b>Scale:</b> 1:— &bull; <b>Display Units:</b> — &bull; <b>CRS:</b> —"
+        )
+        self.clean_scale_label.setStyleSheet(
+            "color: #475569; font-size: 11px; padding: 4px 8px; background: #f1f5f9; border-radius: 4px; border: 1px solid #e2e8f0;"
+        )
         clean_map_layout.addWidget(self.clean_scale_label)
 
         if self.clean_map_canvas is not None:
@@ -3015,9 +3183,13 @@ class YieldInputInspectionDialog(QDialog):
             self.min_swath_spin.setSuffix(" ft")
             self.min_swath_spin.setValue(round(default_recipe.min_swath_width_m * 3.28084, 1))
             self.overlap_dist_spin.setSuffix(" ft")
-            self.overlap_dist_spin.setValue(round(default_recipe.overlap_distance_threshold_m * 3.28084, 1))
+            self.overlap_dist_spin.setValue(
+                round(default_recipe.overlap_distance_threshold_m * 3.28084, 1)
+            )
             self.outlier_radius_spin.setSuffix(" ft")
-            self.outlier_radius_spin.setValue(round(default_recipe.local_outlier_radius_m * 3.28084, 1))
+            self.outlier_radius_spin.setValue(
+                round(default_recipe.local_outlier_radius_m * 3.28084, 1)
+            )
             self.min_yield_spin.setSuffix(" bu/ac")
             self.max_yield_spin.setSuffix(" bu/ac")
             min_bu = kg_per_hectare_to_bushels_per_acre(default_recipe.min_yield_kg_ha, tw)
@@ -3046,9 +3218,14 @@ class YieldInputInspectionDialog(QDialog):
             lbl.setText("0")
 
     def _on_recipe_parameter_changed(self, *args):
-        if hasattr(self, "execute_button") and getattr(self, "current_prepared_layer", None) is not None:
+        if (
+            hasattr(self, "execute_button")
+            and getattr(self, "current_prepared_layer", None) is not None
+        ):
             self.execute_button.setEnabled(True)
-            self._style_button_action_needed(self.execute_button, "Execute Cleaning Pipeline / Apply Filters")
+            self._style_button_action_needed(
+                self.execute_button, "Execute Cleaning Pipeline / Apply Filters"
+            )
 
     def _collect_recipe_from_ui(self) -> CleaningRecipe:
         crop = str(self.crop_combo.currentData() or "corn")
@@ -3085,7 +3262,8 @@ class YieldInputInspectionDialog(QDialog):
             max_speed_m_s=speed_max,
             filter_min_swath=self.min_swath_check.isChecked(),
             min_swath_width_m=swath_min,
-            filter_pass_start=self.pass_start_check.isChecked() and self.trim_start_spin.value() > 0,
+            filter_pass_start=self.pass_start_check.isChecked()
+            and self.trim_start_spin.value() > 0,
             pass_start_count=int(self.trim_start_spin.value()),
             filter_pass_end=self.pass_end_check.isChecked() and self.trim_end_spin.value() > 0,
             pass_end_count=int(self.trim_end_spin.value()),
@@ -3105,7 +3283,11 @@ class YieldInputInspectionDialog(QDialog):
             return
         scale = self.clean_map_canvas.scale()
         crs_auth = "Unresolved"
-        if hasattr(self, "current_clean_preview_layer") and self.current_clean_preview_layer and self.current_clean_preview_layer.isValid():
+        if (
+            hasattr(self, "current_clean_preview_layer")
+            and self.current_clean_preview_layer
+            and self.current_clean_preview_layer.isValid()
+        ):
             crs_auth = self.current_clean_preview_layer.crs().authid()
         is_metric = str(self.units_combo.currentData() or "imperial") == "metric"
         unit_str = "Metric (Meters, kg/ha)" if is_metric else "Imperial (Feet, bu/ac)"
@@ -3114,7 +3296,12 @@ class YieldInputInspectionDialog(QDialog):
         )
 
     def _update_clean_legend(self):
-        if not hasattr(self, "clean_legend_layout") or not hasattr(self, "current_clean_preview_layer") or not self.current_clean_preview_layer or not self.current_clean_preview_layer.isValid():
+        if (
+            not hasattr(self, "clean_legend_layout")
+            or not hasattr(self, "current_clean_preview_layer")
+            or not self.current_clean_preview_layer
+            or not self.current_clean_preview_layer.isValid()
+        ):
             return
         while self.clean_legend_layout.count():
             item = self.clean_legend_layout.takeAt(0)
@@ -3149,20 +3336,28 @@ class YieldInputInspectionDialog(QDialog):
                 low = item["lower"]
                 up = item["upper"]
                 if "yield" in attr and not is_metric:
-                    tw = float(self.test_weight_spin.value() if hasattr(self, "test_weight_spin") else 56.0)
+                    tw = float(
+                        self.test_weight_spin.value() if hasattr(self, "test_weight_spin") else 56.0
+                    )
                     if low > 300 or up > 300:
                         low = kg_per_hectare_to_bushels_per_acre(low, tw)
                         up = kg_per_hectare_to_bushels_per_acre(up, tw)
                 label_text = f"{low:.1f} – {up:.1f} {unit_label}".strip()
 
             chip = QLabel(f"<span style='color: {color}; font-size: 14px;'>■</span> {label_text}")
-            chip.setStyleSheet("font-size: 11px; color: #334155; padding: 2px 6px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px;")
+            chip.setStyleSheet(
+                "font-size: 11px; color: #334155; padding: 2px 6px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px;"
+            )
             self.clean_legend_layout.addWidget(chip)
 
         self.clean_legend_layout.addStretch(1)
 
     def _apply_clean_preview_styling(self):
-        if not hasattr(self, "current_clean_preview_layer") or not self.current_clean_preview_layer or not self.current_clean_preview_layer.isValid():
+        if (
+            not hasattr(self, "current_clean_preview_layer")
+            or not self.current_clean_preview_layer
+            or not self.current_clean_preview_layer.isValid()
+        ):
             return
         attr = str(self.clean_attribute_combo.currentData() or "yield_dry_mass_area")
         ramp = str(self.clean_ramp_combo.currentData() or "RdYlGn")
@@ -3205,7 +3400,12 @@ class YieldInputInspectionDialog(QDialog):
             self.clean_map_canvas.setMapTool(self.clean_pan_tool)
 
     def _zoom_clean_full(self):
-        if self.clean_map_canvas is not None and hasattr(self, "current_clean_preview_layer") and self.current_clean_preview_layer and self.current_clean_preview_layer.isValid():
+        if (
+            self.clean_map_canvas is not None
+            and hasattr(self, "current_clean_preview_layer")
+            and self.current_clean_preview_layer
+            and self.current_clean_preview_layer.isValid()
+        ):
             self.clean_map_canvas.setExtent(self.current_clean_preview_layer.extent())
             self.clean_map_canvas.refresh()
             self._update_clean_scale()
@@ -3215,15 +3415,25 @@ class YieldInputInspectionDialog(QDialog):
             self.clean_selection_label.setText(f"Selected: {len(selected_ids):,} points")
 
     def _exclude_selected_points(self):
-        if not hasattr(self, "current_clean_preview_layer") or not self.current_clean_preview_layer or not self.current_clean_preview_layer.isValid():
+        if (
+            not hasattr(self, "current_clean_preview_layer")
+            or not self.current_clean_preview_layer
+            or not self.current_clean_preview_layer.isValid()
+        ):
             QMessageBox.information(self, PLUGIN_NAME, "Clean dataset first, then select points.")
             return
         selected_feats = list(self.current_clean_preview_layer.selectedFeatures())
         if not selected_feats:
-            QMessageBox.information(self, PLUGIN_NAME, "No points selected on the map. Drag a box over points first.")
+            QMessageBox.information(
+                self, PLUGIN_NAME, "No points selected on the map. Drag a box over points first."
+            )
             return
         for feat in selected_feats:
-            s_idx = feat["source_index"] if "source_index" in [f.name() for f in self.current_clean_preview_layer.fields()] else feat.id()
+            s_idx = (
+                feat["source_index"]
+                if "source_index" in [f.name() for f in self.current_clean_preview_layer.fields()]
+                else feat.id()
+            )
             try:
                 idx_num = int(s_idx)
             except (ValueError, TypeError):
@@ -3237,14 +3447,24 @@ class YieldInputInspectionDialog(QDialog):
         self._on_recipe_parameter_changed()
 
     def _restore_selected_points(self):
-        if not hasattr(self, "current_clean_preview_layer") or not self.current_clean_preview_layer or not self.current_clean_preview_layer.isValid():
+        if (
+            not hasattr(self, "current_clean_preview_layer")
+            or not self.current_clean_preview_layer
+            or not self.current_clean_preview_layer.isValid()
+        ):
             return
         selected_feats = list(self.current_clean_preview_layer.selectedFeatures())
         if not selected_feats:
-            QMessageBox.information(self, PLUGIN_NAME, "No points selected on the map. Drag a box over points first.")
+            QMessageBox.information(
+                self, PLUGIN_NAME, "No points selected on the map. Drag a box over points first."
+            )
             return
         for feat in selected_feats:
-            s_idx = feat["source_index"] if "source_index" in [f.name() for f in self.current_clean_preview_layer.fields()] else feat.id()
+            s_idx = (
+                feat["source_index"]
+                if "source_index" in [f.name() for f in self.current_clean_preview_layer.fields()]
+                else feat.id()
+            )
             try:
                 idx_num = int(s_idx)
             except (ValueError, TypeError):
@@ -3261,7 +3481,11 @@ class YieldInputInspectionDialog(QDialog):
         self.manual_excluded_ids.clear()
         self.manual_restored_ids.clear()
         self.manual_deletes_count_lbl.setText("0")
-        if hasattr(self, "current_clean_preview_layer") and self.current_clean_preview_layer and self.current_clean_preview_layer.isValid():
+        if (
+            hasattr(self, "current_clean_preview_layer")
+            and self.current_clean_preview_layer
+            and self.current_clean_preview_layer.isValid()
+        ):
             self.current_clean_preview_layer.removeSelection()
         self.clean_selection_label.setText("Selected: 0 points")
         self._recompute_and_refresh_clean_view()
@@ -3288,14 +3512,23 @@ class YieldInputInspectionDialog(QDialog):
             cleaning_result = run_cleaning_filters(self.current_observations, recipe)
             self.current_cleaning_result = cleaning_result
 
-            if hasattr(self, "current_clean_preview_layer") and self.current_clean_preview_layer and self.current_clean_preview_layer.isValid():
+            if (
+                hasattr(self, "current_clean_preview_layer")
+                and self.current_clean_preview_layer
+                and self.current_clean_preview_layer.isValid()
+            ):
                 self.current_clean_preview_layer.setSubsetString("")
                 status_idx = self.current_clean_preview_layer.fields().indexOf("clean_status")
                 reasons_idx = self.current_clean_preview_layer.fields().indexOf("filter_reasons")
                 if status_idx >= 0:
                     self.current_clean_preview_layer.startEditing()
                     for feat in self.current_clean_preview_layer.getFeatures():
-                        s_idx = feat["source_index"] if "source_index" in [f.name() for f in self.current_clean_preview_layer.fields()] else feat.id()
+                        s_idx = (
+                            feat["source_index"]
+                            if "source_index"
+                            in [f.name() for f in self.current_clean_preview_layer.fields()]
+                            else feat.id()
+                        )
                         try:
                             idx_num = int(s_idx)
                         except (ValueError, TypeError):
@@ -3304,9 +3537,13 @@ class YieldInputInspectionDialog(QDialog):
                             upd = cleaning_result.observation_updates[idx_num]
                             status_val = upd.get("clean_status", "accepted")
                             reasons_val = upd.get("filter_reasons", "")
-                            self.current_clean_preview_layer.changeAttributeValue(feat.id(), status_idx, status_val)
+                            self.current_clean_preview_layer.changeAttributeValue(
+                                feat.id(), status_idx, status_val
+                            )
                             if reasons_idx >= 0:
-                                self.current_clean_preview_layer.changeAttributeValue(feat.id(), reasons_idx, reasons_val)
+                                self.current_clean_preview_layer.changeAttributeValue(
+                                    feat.id(), reasons_idx, reasons_val
+                                )
                     self.current_clean_preview_layer.commitChanges()
 
             counts = cleaning_result.reason_counts
@@ -3332,7 +3569,13 @@ class YieldInputInspectionDialog(QDialog):
             clean_vals = []
             for i, obs in enumerate(self.current_observations):
                 y = None
-                for k in ("yield_dry_mass_area", "yield_wet_mass_area", "dry_yield_mass_area", "yield", "dry_yield"):
+                for k in (
+                    "yield_dry_mass_area",
+                    "yield_wet_mass_area",
+                    "dry_yield_mass_area",
+                    "yield",
+                    "dry_yield",
+                ):
                     val = obs.get(k)
                     if val is not None:
                         try:
@@ -3349,6 +3592,7 @@ class YieldInputInspectionDialog(QDialog):
                         clean_vals.append(y_val)
 
             import statistics
+
             def get_stats(vals):
                 if not vals:
                     return {"mean": 0.0, "std": 0.0, "cv": 0.0, "n": 0, "min": 0.0, "max": 0.0}
@@ -3356,7 +3600,14 @@ class YieldInputInspectionDialog(QDialog):
                 mean_v = statistics.mean(vals)
                 std_v = statistics.stdev(vals) if n_v > 1 else 0.0
                 cv_v = (std_v / mean_v * 100.0) if mean_v > 0 else 0.0
-                return {"mean": mean_v, "std": std_v, "cv": cv_v, "n": n_v, "min": min(vals), "max": max(vals)}
+                return {
+                    "mean": mean_v,
+                    "std": std_v,
+                    "cv": cv_v,
+                    "n": n_v,
+                    "min": min(vals),
+                    "max": max(vals),
+                }
 
             raw_s = get_stats(raw_vals)
             clean_s = get_stats(clean_vals)
@@ -3473,22 +3724,44 @@ class YieldInputInspectionDialog(QDialog):
 
             bnd_rings = []
             bnd_layer = None
-            if hasattr(self, "current_preview_boundary_layer") and self.current_preview_boundary_layer and self.current_preview_boundary_layer.isValid() and self.current_preview_boundary_layer.featureCount() > 0:
+            if (
+                hasattr(self, "current_preview_boundary_layer")
+                and self.current_preview_boundary_layer
+                and self.current_preview_boundary_layer.isValid()
+                and self.current_preview_boundary_layer.featureCount() > 0
+            ):
                 bnd_layer = self.current_preview_boundary_layer
-            elif hasattr(self, "current_prepared_boundary_layer") and self.current_prepared_boundary_layer and self.current_prepared_boundary_layer.isValid() and self.current_prepared_boundary_layer.featureCount() > 0:
+            elif (
+                hasattr(self, "current_prepared_boundary_layer")
+                and self.current_prepared_boundary_layer
+                and self.current_prepared_boundary_layer.isValid()
+                and self.current_prepared_boundary_layer.featureCount() > 0
+            ):
                 bnd_layer = self.current_prepared_boundary_layer
             elif self.current_run_paths and "geopackage" in self.current_run_paths:
-                gpkg_bnd = QgsVectorLayer(f"{self.current_run_paths['geopackage']}|layername=field_boundary", "Field Boundary", "ogr")
+                gpkg_bnd = QgsVectorLayer(
+                    f"{self.current_run_paths['geopackage']}|layername=field_boundary",
+                    "Field Boundary",
+                    "ogr",
+                )
                 if gpkg_bnd.isValid() and gpkg_bnd.featureCount() > 0:
                     bnd_layer = gpkg_bnd
 
             if bnd_layer is not None and bnd_layer.isValid() and bnd_layer.featureCount() > 0:
                 try:
                     wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
-                    src_crs = bnd_layer.crs() if (bnd_layer.crs() and bnd_layer.crs().isValid()) else QgsCoordinateReferenceSystem(analysis_crs)
+                    src_crs = (
+                        bnd_layer.crs()
+                        if (bnd_layer.crs() and bnd_layer.crs().isValid())
+                        else QgsCoordinateReferenceSystem(analysis_crs)
+                    )
                     need_xform = src_crs.isValid() and src_crs.authid().upper() != "EPSG:4326"
                     transform_context = QgsProject.instance().transformContext()
-                    xform = QgsCoordinateTransform(src_crs, wgs84_crs, transform_context) if need_xform else None
+                    xform = (
+                        QgsCoordinateTransform(src_crs, wgs84_crs, transform_context)
+                        if need_xform
+                        else None
+                    )
 
                     for feat in bnd_layer.getFeatures():
                         geom = feat.geometry()
@@ -3527,11 +3800,19 @@ class YieldInputInspectionDialog(QDialog):
                     wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
                     src_crs = (
                         self.current_prepared_layer.crs()
-                        if (hasattr(self, "current_prepared_layer") and self.current_prepared_layer and self.current_prepared_layer.crs().isValid())
+                        if (
+                            hasattr(self, "current_prepared_layer")
+                            and self.current_prepared_layer
+                            and self.current_prepared_layer.crs().isValid()
+                        )
                         else QgsCoordinateReferenceSystem(analysis_crs)
                     )
                     need_xform = src_crs.isValid() and src_crs.authid() != "EPSG:4326"
-                    xform = QgsCoordinateTransform(src_crs, wgs84_crs, QgsProject.instance()) if need_xform else None
+                    xform = (
+                        QgsCoordinateTransform(src_crs, wgs84_crs, QgsProject.instance())
+                        if need_xform
+                        else None
+                    )
 
                     pts = []
                     for obs in obs_list:
@@ -3550,16 +3831,17 @@ class YieldInputInspectionDialog(QDialog):
                         if hull and not hull.isEmpty():
                             poly = hull.asPolygon()
                             if poly and poly[0]:
-                                bnd_rings = [[(round(float(p.y()), 6), round(float(p.x()), 6)) for p in poly[0]]]
+                                bnd_rings = [
+                                    [
+                                        (round(float(p.y()), 6), round(float(p.x()), 6))
+                                        for p in poly[0]
+                                    ]
+                                ]
                 except Exception:
                     pass
 
-            grid_size = float(self.grid_size_spin.value() if hasattr(self, "grid_size_spin") else 30.0)
-
-            gpkg = (
-                Path(self.current_run_paths["geopackage"])
-                if (self.current_run_paths and "geopackage" in self.current_run_paths)
-                else (self.current_run_folder / f"{self.current_run_folder.name}_yield_data.gpkg")
+            grid_size = float(
+                self.grid_size_spin.value() if hasattr(self, "grid_size_spin") else 30.0
             )
 
             summary = write_run_package(
@@ -3602,7 +3884,11 @@ class YieldInputInspectionDialog(QDialog):
             src_idx = fields.indexFromName("source_index")
 
             for i, orig_feat in enumerate(self.current_prepared_layer.getFeatures()):
-                upd = cleaning_result.observation_updates[i] if i < len(cleaning_result.observation_updates) else {}
+                upd = (
+                    cleaning_result.observation_updates[i]
+                    if i < len(cleaning_result.observation_updates)
+                    else {}
+                )
                 feat = QgsFeature(preview_layer.fields())
                 feat.setGeometry(orig_feat.geometry())
                 for fld in self.current_prepared_layer.fields():
@@ -3651,7 +3937,13 @@ class YieldInputInspectionDialog(QDialog):
             clean_vals = []
             for i, obs in enumerate(obs_list):
                 y = None
-                for k in ("yield_dry_mass_area", "yield_wet_mass_area", "dry_yield_mass_area", "yield", "dry_yield"):
+                for k in (
+                    "yield_dry_mass_area",
+                    "yield_wet_mass_area",
+                    "dry_yield_mass_area",
+                    "yield",
+                    "dry_yield",
+                ):
                     val = obs.get(k)
                     if val is not None:
                         try:
@@ -3668,6 +3960,7 @@ class YieldInputInspectionDialog(QDialog):
                         clean_vals.append(y_val)
 
             import statistics
+
             def get_stats(vals):
                 if not vals:
                     return {"mean": 0.0, "std": 0.0, "cv": 0.0, "n": 0, "min": 0.0, "max": 0.0}
@@ -3675,7 +3968,14 @@ class YieldInputInspectionDialog(QDialog):
                 mean_v = statistics.mean(vals)
                 std_v = statistics.stdev(vals) if n_v > 1 else 0.0
                 cv_v = (std_v / mean_v * 100.0) if mean_v > 0 else 0.0
-                return {"mean": mean_v, "std": std_v, "cv": cv_v, "n": n_v, "min": min(vals), "max": max(vals)}
+                return {
+                    "mean": mean_v,
+                    "std": std_v,
+                    "cv": cv_v,
+                    "n": n_v,
+                    "min": min(vals),
+                    "max": max(vals),
+                }
 
             raw_s = get_stats(raw_vals)
             clean_s = get_stats(clean_vals)
@@ -3725,7 +4025,9 @@ class YieldInputInspectionDialog(QDialog):
 
             self.clean_status.setHtml(stats_html)
             self.execute_button.setEnabled(True)
-            self._style_button_completed(self.execute_button, "✓ Cleaning Completed (Click to Re-run)")
+            self._style_button_completed(
+                self.execute_button, "✓ Cleaning Completed (Click to Re-run)"
+            )
 
             self.open_review_button.setEnabled(True)
             self.open_log_button.setEnabled(True)
@@ -3735,7 +4037,9 @@ class YieldInputInspectionDialog(QDialog):
         except Exception as exc:
             if hasattr(self, "execute_button"):
                 self.execute_button.setEnabled(True)
-                self._style_button_action_needed(self.execute_button, "Execute Cleaning Pipeline / Apply Filters")
+                self._style_button_action_needed(
+                    self.execute_button, "Execute Cleaning Pipeline / Apply Filters"
+                )
             QMessageBox.warning(self, PLUGIN_NAME, f"Cleaning failed: {exc}")
         finally:
             if hasattr(self, "clean_progress"):
@@ -3744,7 +4048,9 @@ class YieldInputInspectionDialog(QDialog):
 
     def _open_html_review(self):
         if self.current_review_html_path and self.current_review_html_path.exists():
-            QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.current_review_html_path.resolve())))
+            QDesktopServices.openUrl(
+                QUrl.fromLocalFile(str(self.current_review_html_path.resolve()))
+            )
         else:
             QMessageBox.warning(self, PLUGIN_NAME, "HTML review report file not found.")
 
@@ -3848,7 +4154,9 @@ class YieldInputInspectionDialog(QDialog):
             self._style_button_action_needed(self.inspect_button, "Inspect input")
             self.inspect_button.setEnabled(True)
         if hasattr(self, "input_continue_button"):
-            self._style_button_action_needed(self.input_continue_button, "Continue to Field Boundary")
+            self._style_button_action_needed(
+                self.input_continue_button, "Continue to Field Boundary"
+            )
             self.input_continue_button.setEnabled(False)
 
         # Reset mapping table
@@ -3885,7 +4193,9 @@ class YieldInputInspectionDialog(QDialog):
         if hasattr(self, "concavity"):
             self.concavity.setValue(0.3)
         if hasattr(self, "import_create_boundary_button"):
-            self._style_button_action_needed(self.import_create_boundary_button, "Import / Create Boundary")
+            self._style_button_action_needed(
+                self.import_create_boundary_button, "Import / Create Boundary"
+            )
             self.import_create_boundary_button.setEnabled(True)
         if hasattr(self, "boundary_map_canvas") and self.boundary_map_canvas:
             self.boundary_map_canvas.setLayers([])
@@ -3897,7 +4207,9 @@ class YieldInputInspectionDialog(QDialog):
         if hasattr(self, "vertex_guide_label"):
             self.vertex_guide_label.setVisible(False)
         if hasattr(self, "boundary_continue_button"):
-            self._style_button_action_needed(self.boundary_continue_button, "Continue to Prepare Dataset")
+            self._style_button_action_needed(
+                self.boundary_continue_button, "Continue to Prepare Dataset"
+            )
             self.boundary_continue_button.setEnabled(False)
 
         # 4. Reset Tab 3 (Prepare Dataset)
@@ -3911,16 +4223,22 @@ class YieldInputInspectionDialog(QDialog):
             self.prepare_progress.setVisible(False)
             self.prepare_progress.setValue(0)
         if hasattr(self, "create_dataset_button"):
-            self._style_button_action_needed(self.create_dataset_button, "Create prepared yield dataset")
+            self._style_button_action_needed(
+                self.create_dataset_button, "Create prepared yield dataset"
+            )
             self.create_dataset_button.setEnabled(True)
         if hasattr(self, "prepare_continue_button"):
-            self._style_button_action_needed(self.prepare_continue_button, "Continue to Clean & Review")
+            self._style_button_action_needed(
+                self.prepare_continue_button, "Continue to Clean & Review"
+            )
             self.prepare_continue_button.setEnabled(False)
         if hasattr(self, "prepare_map_canvas") and self.prepare_map_canvas:
             self.prepare_map_canvas.setLayers([])
             self.prepare_map_canvas.refresh()
         if hasattr(self, "prepare_scale_label"):
-            self.prepare_scale_label.setText("📏 <b>Scale:</b> 1:— &bull; <b>Display Units:</b> — &bull; <b>CRS:</b> —")
+            self.prepare_scale_label.setText(
+                "📏 <b>Scale:</b> 1:— &bull; <b>Display Units:</b> — &bull; <b>CRS:</b> —"
+            )
         if hasattr(self, "prepare_attribute_combo") and self.prepare_attribute_combo.count() > 0:
             self.prepare_attribute_combo.setCurrentIndex(0)
         if hasattr(self, "prepare_ramp_combo") and self.prepare_ramp_combo.count() > 0:
@@ -3941,7 +4259,9 @@ class YieldInputInspectionDialog(QDialog):
         if hasattr(self, "clean_map_group"):
             self.clean_map_group.setVisible(False)
         if hasattr(self, "clean_scale_label"):
-            self.clean_scale_label.setText("📏 <b>Scale:</b> 1:— &bull; <b>Display Units:</b> — &bull; <b>CRS:</b> —")
+            self.clean_scale_label.setText(
+                "📏 <b>Scale:</b> 1:— &bull; <b>Display Units:</b> — &bull; <b>CRS:</b> —"
+            )
         if hasattr(self, "open_review_button"):
             self.open_review_button.setEnabled(False)
         if hasattr(self, "open_log_button"):
@@ -3957,5 +4277,3 @@ class YieldInputInspectionDialog(QDialog):
         # 6. Switch back to first tab
         self.tabs.setCurrentIndex(0)
         self._update_help(0)
-
-

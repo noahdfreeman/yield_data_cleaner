@@ -48,6 +48,7 @@ class RepositoryStructureTests(unittest.TestCase):
 
     def test_all_modules_importable(self):
         import importlib
+
         for path in sorted(PACKAGE.rglob("*.py")):
             rel = path.relative_to(ROOT)
             module_name = ".".join(rel.with_suffix("").parts)

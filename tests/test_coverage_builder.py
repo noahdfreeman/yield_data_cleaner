@@ -34,8 +34,22 @@ class CoverageBuilderTests(unittest.TestCase):
 
     def test_build_pass_coverage_footprints(self) -> None:
         obs = [
-            {"observation_id": "obs_1", "x": 0.0, "y": 0.0, "heading_deg": 90.0, "swath_width_m": 6.0, "distance_m": 2.0},
-            {"observation_id": "obs_2", "x": 2.0, "y": 0.0, "heading_deg": 90.0, "swath_width_m": 6.0, "distance_m": 2.0},
+            {
+                "observation_id": "obs_1",
+                "x": 0.0,
+                "y": 0.0,
+                "heading_deg": 90.0,
+                "swath_width_m": 6.0,
+                "distance_m": 2.0,
+            },
+            {
+                "observation_id": "obs_2",
+                "x": 2.0,
+                "y": 0.0,
+                "heading_deg": 90.0,
+                "swath_width_m": 6.0,
+                "distance_m": 2.0,
+            },
         ]
         fps = build_pass_coverage_footprints(obs)
         self.assertEqual(len(fps), 2)

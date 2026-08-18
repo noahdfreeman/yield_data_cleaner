@@ -25,7 +25,13 @@ def evaluate_range_filters(
     for i, obs in enumerate(observations):
         # Yield checks (check dry yield then wet yield aliases)
         yield_val = None
-        for k in ("yield_dry_mass_area", "yield_wet_mass_area", "dry_yield_mass_area", "yield", "dry_yield"):
+        for k in (
+            "yield_dry_mass_area",
+            "yield_wet_mass_area",
+            "dry_yield_mass_area",
+            "yield",
+            "dry_yield",
+        ):
             val = obs.get(k)
             if val is not None:
                 yield_val = val

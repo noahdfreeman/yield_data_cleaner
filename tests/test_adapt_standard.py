@@ -17,9 +17,36 @@ class AdaptStandardTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             pkg_dir = Path(temp_dir) / "FieldA_Corn_ADAPT"
             obs = [
-                {"observation_id": "obs_1", "pass_id": "1", "x": 500000.0, "y": 4500000.0, "yield_wet_mass_area": 9000.0, "moisture_pct": 15.0, "swath_width_m": 6.0, "distance_m": 2.0},
-                {"observation_id": "obs_2", "pass_id": "1", "x": 500002.0, "y": 4500000.0, "yield_wet_mass_area": 9100.0, "moisture_pct": 15.0, "swath_width_m": 6.0, "distance_m": 2.0},
-                {"observation_id": "obs_3", "pass_id": "1", "x": 500004.0, "y": 4500000.0, "yield_wet_mass_area": 100.0, "moisture_pct": 15.0, "swath_width_m": 6.0, "distance_m": 2.0},
+                {
+                    "observation_id": "obs_1",
+                    "pass_id": "1",
+                    "x": 500000.0,
+                    "y": 4500000.0,
+                    "yield_wet_mass_area": 9000.0,
+                    "moisture_pct": 15.0,
+                    "swath_width_m": 6.0,
+                    "distance_m": 2.0,
+                },
+                {
+                    "observation_id": "obs_2",
+                    "pass_id": "1",
+                    "x": 500002.0,
+                    "y": 4500000.0,
+                    "yield_wet_mass_area": 9100.0,
+                    "moisture_pct": 15.0,
+                    "swath_width_m": 6.0,
+                    "distance_m": 2.0,
+                },
+                {
+                    "observation_id": "obs_3",
+                    "pass_id": "1",
+                    "x": 500004.0,
+                    "y": 4500000.0,
+                    "yield_wet_mass_area": 100.0,
+                    "moisture_pct": 15.0,
+                    "swath_width_m": 6.0,
+                    "distance_m": 2.0,
+                },
             ]
             cleaning_result = CleaningRunResult(
                 total_observations=3,

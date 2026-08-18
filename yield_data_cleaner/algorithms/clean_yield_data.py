@@ -9,10 +9,13 @@ from typing import Any
 
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
     QgsFeature,
     QgsFeatureSink,
     QgsField,
     QgsFields,
+    QgsGeometry,
     QgsProcessing,
     QgsProcessingAlgorithm,
     QgsProcessingException,
@@ -21,6 +24,7 @@ from qgis.core import (
     QgsProcessingParameterFeatureSource,
     QgsProcessingParameterFile,
     QgsProcessingParameterFileDestination,
+    QgsProject,
 )
 
 from ..compat import enum_member, qgis_field_type
@@ -251,7 +255,9 @@ class CleanYieldDataAlgorithm(QgsProcessingAlgorithm):
 
         summary_path = Path(self.parameterAsFileOutput(parameters, self.SUMMARY_JSON, context))
         summary_path.parent.mkdir(parents=True, exist_ok=True)
-        summary_path.write_text(json.dumps(result.to_dict(), indent=2, default=str), encoding="utf-8")
+        summary_path.write_text(
+            json.dumps(result.to_dict(), indent=2, default=str), encoding="utf-8"
+        )
 
         recipe_out_path = Path(self.parameterAsFileOutput(parameters, self.RECIPE_JSON, context))
         recipe_out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -261,9 +267,10 @@ class CleanYieldDataAlgorithm(QgsProcessingAlgorithm):
         bnd_coords = None
         if boundary_source:
             try:
-                from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject
                 wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
-                xform = QgsCoordinateTransform(boundary_source.sourceCrs(), wgs84_crs, QgsProject.instance())
+                xform = QgsCoordinateTransform(
+                    boundary_source.sourceCrs(), wgs84_crs, QgsProject.instance()
+                )
                 bnd_coords = []
                 for b_feat in boundary_source.getFeatures():
                     geom = b_feat.geometry()
@@ -273,11 +280,15 @@ class CleanYieldDataAlgorithm(QgsProcessingAlgorithm):
                         if geom_wgs.isMultipart():
                             for poly in geom_wgs.asMultiPolygon():
                                 if poly and poly[0]:
-                                    bnd_coords.append([(round(pt.y(), 6), round(pt.x(), 6)) for pt in poly[0]])
+                                    bnd_coords.append(
+                                        [(round(pt.y(), 6), round(pt.x(), 6)) for pt in poly[0]]
+                                    )
                         else:
                             poly = geom_wgs.asPolygon()
                             if poly and poly[0]:
-                                bnd_coords.append([(round(pt.y(), 6), round(pt.x(), 6)) for pt in poly[0]])
+                                bnd_coords.append(
+                                    [(round(pt.y(), 6), round(pt.x(), 6)) for pt in poly[0]]
+                                )
             except Exception:
                 bnd_coords = None
 

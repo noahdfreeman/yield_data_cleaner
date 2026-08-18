@@ -147,7 +147,9 @@ class CleaningRecipe:
         return cls.from_dict(payload)
 
 
-def default_recipe_for_crop(crop_code: str = "corn", unit_profile: str = "imperial") -> CleaningRecipe:
+def default_recipe_for_crop(
+    crop_code: str = "corn", unit_profile: str = "imperial"
+) -> CleaningRecipe:
     """Return default recipe tuned for the specified crop."""
     normalized_crop = crop_code.strip().lower()
     if normalized_crop == "soybean":

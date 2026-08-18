@@ -17,10 +17,14 @@ class OverlapTests(unittest.TestCase):
             {"source_index": 0, "pass_id": "1", "x": 0.0, "y": 0.0},
             {"source_index": 1, "pass_id": "1", "x": 0.0, "y": 5.0},
             {"source_index": 2, "pass_id": "1", "x": 0.0, "y": 10.0},
-
             # Pass 2 (Headland cut intersecting Pass 1 at y=5.0)
             {"source_index": 3, "pass_id": "2", "x": 20.0, "y": 5.0},
-            {"source_index": 4, "pass_id": "2", "x": 0.5, "y": 5.0},  # Intersects (dist=0.5m < 3.0m) -> overlap!
+            {
+                "source_index": 4,
+                "pass_id": "2",
+                "x": 0.5,
+                "y": 5.0,
+            },  # Intersects (dist=0.5m < 3.0m) -> overlap!
             {"source_index": 5, "pass_id": "2", "x": -20.0, "y": 5.0},
         ]
         reasons = evaluate_overlap_filter(obs, recipe)

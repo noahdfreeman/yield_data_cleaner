@@ -7,7 +7,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
-from ..core.pass_reconstruction import euclidean_distance, get_point_coordinate
+from ..core.pass_reconstruction import get_point_coordinate
 
 
 @dataclass
@@ -35,7 +35,11 @@ class SwathFootprint:
                 "area_m2": round(self.area_m2, 2),
                 "swath_width_m": round(self.swath_width_m, 2),
                 "length_m": round(self.length_m, 2),
-                "yield_wet_mass_area": round(self.yield_wet_mass_area, 2) if self.yield_wet_mass_area is not None else None,
+                "yield_wet_mass_area": (
+                    round(self.yield_wet_mass_area, 2)
+                    if self.yield_wet_mass_area is not None
+                    else None
+                ),
             },
         }
 
@@ -108,7 +112,11 @@ def build_pass_coverage_footprints(
         # Estimate length from distance or speed * duration
         dist_val = obs.get("distance_m")
         try:
-            dist = float(dist_val) if dist_val is not None and float(dist_val) > 0 else default_length_m
+            dist = (
+                float(dist_val)
+                if dist_val is not None and float(dist_val) > 0
+                else default_length_m
+            )
         except (TypeError, ValueError):
             dist = default_length_m
 

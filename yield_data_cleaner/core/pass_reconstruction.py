@@ -48,7 +48,9 @@ class PassSegment:
             "end_time": self.end_time,
             "duration_s": round(self.duration_s, 2) if self.duration_s is not None else None,
             "length_m": round(self.length_m, 2),
-            "mean_heading_deg": round(self.mean_heading_deg, 1) if self.mean_heading_deg is not None else None,
+            "mean_heading_deg": (
+                round(self.mean_heading_deg, 1) if self.mean_heading_deg is not None else None
+            ),
             "confidence": round(self.confidence, 3),
             "split_reason": self.split_reason,
             "point_indices": list(self.point_indices),
@@ -112,7 +114,11 @@ def parse_timestamp(value: Any) -> datetime | None:
 
 def get_point_coordinate(obs: Mapping[str, Any]) -> tuple[float, float] | None:
     """Extract (x, y) coordinate from an observation record."""
-    if "geometry" in obs and isinstance(obs["geometry"], (tuple, list)) and len(obs["geometry"]) >= 2:
+    if (
+        "geometry" in obs
+        and isinstance(obs["geometry"], (tuple, list))
+        and len(obs["geometry"]) >= 2
+    ):
         try:
             x, y = float(obs["geometry"][0]), float(obs["geometry"][1])
             if math.isfinite(x) and math.isfinite(y):
@@ -120,7 +126,13 @@ def get_point_coordinate(obs: Mapping[str, Any]) -> tuple[float, float] | None:
         except (TypeError, ValueError):
             pass
 
-    for x_key, y_key in (("x", "y"), ("X", "Y"), ("lon", "lat"), ("longitude", "latitude"), ("easting", "northing")):
+    for x_key, y_key in (
+        ("x", "y"),
+        ("X", "Y"),
+        ("lon", "lat"),
+        ("longitude", "latitude"),
+        ("easting", "northing"),
+    ):
         if x_key in obs and y_key in obs:
             try:
                 x_val = obs[x_key]
@@ -240,7 +252,9 @@ def reconstruct_passes(
 
     # Pre-parse timestamps and coordinates
     coords: list[tuple[float, float] | None] = [get_point_coordinate(obs) for obs in observations]
-    timestamps: list[datetime | None] = [parse_timestamp(obs.get("timestamp_utc")) for obs in observations]
+    timestamps: list[datetime | None] = [
+        parse_timestamp(obs.get("timestamp_utc")) for obs in observations
+    ]
 
     # Establish sorting order: by timestamp if available, else source_sequence or original index
     def sort_key(idx: int) -> tuple[int, Any, int]:

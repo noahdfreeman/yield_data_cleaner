@@ -32,7 +32,12 @@ def test_crop_profiles_and_test_weights():
 def test_crop_auto_detection():
     # Detect from filenames / layer names
     assert detect_crop_code("VenusSW_2011_Soybeans") == "soybean"
-    assert detect_crop_code("D:\\Agronomy_Project_Data\\Bryce Farms-All-Rausch Irr. 85-2009-Harvest-Harvest-Corn.shp") == "corn"
+    assert (
+        detect_crop_code(
+            "D:\\Agronomy_Project_Data\\Bryce Farms-All-Rausch Irr. 85-2009-Harvest-Harvest-Corn.shp"
+        )
+        == "corn"
+    )
     assert detect_crop_code("Field10_Winter_Wheat.gpkg") == "wheat"
     assert detect_crop_code("Smith_Canola_2025.csv") == "canola"
     assert detect_crop_code("West_Sorghum.shp") == "sorghum"
@@ -41,8 +46,13 @@ def test_crop_auto_detection():
     assert detect_crop_code("Sunflower_East.geojson") == "sunflower"
 
     # Detect from sample row attributes
-    assert detect_crop_code("Field123", rows=[{"Product": "DKC62-08 Corn", "Yield": 210.5}]) == "corn"
-    assert detect_crop_code("Field123", rows=[{"Crop_Type": "Pioneer Soybeans", "Yield": 65.2}]) == "soybean"
+    assert (
+        detect_crop_code("Field123", rows=[{"Product": "DKC62-08 Corn", "Yield": 210.5}]) == "corn"
+    )
+    assert (
+        detect_crop_code("Field123", rows=[{"Crop_Type": "Pioneer Soybeans", "Yield": 65.2}])
+        == "soybean"
+    )
     assert detect_crop_code("UnknownField", rows=[{"Other": "123"}]) is None
 
 

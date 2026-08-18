@@ -120,7 +120,9 @@ class ExportAdaptAlgorithm(QgsProcessingAlgorithm):
         farm = self.parameterAsString(parameters, self.FARM_NAME, context) or "Default Farm"
 
         manifest_out = Path(self.parameterAsFileOutput(parameters, self.OUTPUT_FOLDER, context))
-        target_dir = manifest_out.parent if manifest_out.name == "adapt_manifest.json" else manifest_out
+        target_dir = (
+            manifest_out.parent if manifest_out.name == "adapt_manifest.json" else manifest_out
+        )
 
         field_names = [f.name() for f in points.fields()]
         obs_list: list[dict[str, Any]] = []
@@ -158,7 +160,9 @@ class ExportAdaptAlgorithm(QgsProcessingAlgorithm):
             cleaning_result=cleaning_res,
             grower_name=grower,
             farm_name=farm,
-            analysis_crs=points.sourceCrs().authid() if points.sourceCrs().isValid() else "EPSG:4326",
+            analysis_crs=(
+                points.sourceCrs().authid() if points.sourceCrs().isValid() else "EPSG:4326"
+            ),
         )
 
         return {

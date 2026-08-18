@@ -35,9 +35,18 @@ class FilterTests(unittest.TestCase):
         t0 = datetime(2026, 10, 1, 12, 0, 0, tzinfo=timezone.utc)
         obs = [
             {"x": None, "y": None, "timestamp_utc": t0.isoformat()},  # invalid_geometry
-            {"x": 10.0, "y": 20.0, "yield_wet_mass_area": float("nan"), "timestamp_utc": t0.isoformat()},  # invalid_numeric
+            {
+                "x": 10.0,
+                "y": 20.0,
+                "yield_wet_mass_area": float("nan"),
+                "timestamp_utc": t0.isoformat(),
+            },  # invalid_numeric
             {"x": 10.0, "y": 20.0, "timestamp_utc": (t0 + timedelta(seconds=1)).isoformat()},
-            {"x": 10.0, "y": 20.0, "timestamp_utc": (t0 + timedelta(seconds=1)).isoformat()},  # duplicate_observation
+            {
+                "x": 10.0,
+                "y": 20.0,
+                "timestamp_utc": (t0 + timedelta(seconds=1)).isoformat(),
+            },  # duplicate_observation
         ]
         reasons = evaluate_quality_filters(obs, self.recipe)
         self.assertIn("invalid_geometry", reasons[0])
@@ -47,10 +56,14 @@ class FilterTests(unittest.TestCase):
     def test_motion_filters(self) -> None:
         obs = [
             {"header_engaged": False, "speed_m_s": 2.0},  # header_disengaged
-            {"header_engaged": True, "speed_m_s": 0.2},   # speed_below_min
-            {"header_engaged": True, "speed_m_s": 5.5},   # speed_above_max
+            {"header_engaged": True, "speed_m_s": 0.2},  # speed_below_min
+            {"header_engaged": True, "speed_m_s": 5.5},  # speed_above_max
             {"header_engaged": True, "speed_m_s": 2.0, "pass_id": "1"},
-            {"header_engaged": True, "speed_m_s": 3.8, "pass_id": "1"},  # speed_change (delta=1.8 > 1.0)
+            {
+                "header_engaged": True,
+                "speed_m_s": 3.8,
+                "pass_id": "1",
+            },  # speed_change (delta=1.8 > 1.0)
         ]
         reasons = evaluate_motion_filters(obs, self.recipe)
         self.assertIn("header_disengaged", reasons[0])
@@ -84,11 +97,11 @@ class FilterTests(unittest.TestCase):
 
     def test_ranges_filters(self) -> None:
         obs = [
-            {"yield_wet_mass_area": 200.0, "moisture_pct": 15.0},   # yield_below_min
-            {"yield_wet_mass_area": 25000.0, "moisture_pct": 15.0}, # yield_above_max
+            {"yield_wet_mass_area": 200.0, "moisture_pct": 15.0},  # yield_below_min
+            {"yield_wet_mass_area": 25000.0, "moisture_pct": 15.0},  # yield_above_max
             {"yield_wet_mass_area": 10000.0, "moisture_pct": 8.0},  # moisture_below_min
-            {"yield_wet_mass_area": 10000.0, "moisture_pct": 35.0}, # moisture_above_max
-            {"yield_wet_mass_area": 10000.0, "moisture_pct": 15.0}, # accepted
+            {"yield_wet_mass_area": 10000.0, "moisture_pct": 35.0},  # moisture_above_max
+            {"yield_wet_mass_area": 10000.0, "moisture_pct": 15.0},  # accepted
         ]
         reasons = evaluate_range_filters(obs, self.recipe)
         self.assertIn("yield_below_min", reasons[0])
@@ -101,11 +114,61 @@ class FilterTests(unittest.TestCase):
         t0 = datetime(2026, 10, 1, 12, 0, 0, tzinfo=timezone.utc)
         obs = [
             # 5 good observations in pass 1
-            {"pass_id": "1", "x": 0.0, "y": 0.0, "timestamp_utc": t0.isoformat(), "header_engaged": True, "speed_m_s": 2.0, "swath_width_m": 6.0, "yield_wet_mass_area": 10000.0, "moisture_pct": 15.0},
-            {"pass_id": "1", "x": 0.0, "y": 2.0, "timestamp_utc": (t0 + timedelta(seconds=1)).isoformat(), "header_engaged": True, "speed_m_s": 2.0, "swath_width_m": 6.0, "yield_wet_mass_area": 10000.0, "moisture_pct": 15.0},
-            {"pass_id": "1", "x": 0.0, "y": 4.0, "timestamp_utc": (t0 + timedelta(seconds=2)).isoformat(), "header_engaged": True, "speed_m_s": 2.0, "swath_width_m": 6.0, "yield_wet_mass_area": 10000.0, "moisture_pct": 15.0},
-            {"pass_id": "1", "x": 0.0, "y": 6.0, "timestamp_utc": (t0 + timedelta(seconds=3)).isoformat(), "header_engaged": True, "speed_m_s": 2.0, "swath_width_m": 6.0, "yield_wet_mass_area": 10000.0, "moisture_pct": 15.0},
-            {"pass_id": "1", "x": 0.0, "y": 8.0, "timestamp_utc": (t0 + timedelta(seconds=4)).isoformat(), "header_engaged": True, "speed_m_s": 2.0, "swath_width_m": 6.0, "yield_wet_mass_area": 10000.0, "moisture_pct": 15.0},
+            {
+                "pass_id": "1",
+                "x": 0.0,
+                "y": 0.0,
+                "timestamp_utc": t0.isoformat(),
+                "header_engaged": True,
+                "speed_m_s": 2.0,
+                "swath_width_m": 6.0,
+                "yield_wet_mass_area": 10000.0,
+                "moisture_pct": 15.0,
+            },
+            {
+                "pass_id": "1",
+                "x": 0.0,
+                "y": 2.0,
+                "timestamp_utc": (t0 + timedelta(seconds=1)).isoformat(),
+                "header_engaged": True,
+                "speed_m_s": 2.0,
+                "swath_width_m": 6.0,
+                "yield_wet_mass_area": 10000.0,
+                "moisture_pct": 15.0,
+            },
+            {
+                "pass_id": "1",
+                "x": 0.0,
+                "y": 4.0,
+                "timestamp_utc": (t0 + timedelta(seconds=2)).isoformat(),
+                "header_engaged": True,
+                "speed_m_s": 2.0,
+                "swath_width_m": 6.0,
+                "yield_wet_mass_area": 10000.0,
+                "moisture_pct": 15.0,
+            },
+            {
+                "pass_id": "1",
+                "x": 0.0,
+                "y": 6.0,
+                "timestamp_utc": (t0 + timedelta(seconds=3)).isoformat(),
+                "header_engaged": True,
+                "speed_m_s": 2.0,
+                "swath_width_m": 6.0,
+                "yield_wet_mass_area": 10000.0,
+                "moisture_pct": 15.0,
+            },
+            {
+                "pass_id": "1",
+                "x": 0.0,
+                "y": 8.0,
+                "timestamp_utc": (t0 + timedelta(seconds=4)).isoformat(),
+                "header_engaged": True,
+                "speed_m_s": 2.0,
+                "swath_width_m": 6.0,
+                "yield_wet_mass_area": 10000.0,
+                "moisture_pct": 15.0,
+            },
         ]
         result = run_cleaning_filters(obs, self.recipe)
         self.assertEqual(result.total_observations, 5)

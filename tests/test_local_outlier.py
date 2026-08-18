@@ -25,7 +25,6 @@ class LocalOutlierTests(unittest.TestCase):
             {"source_index": 3, "x": 0.0, "y": 5.0, "yield_wet_mass_area": 8050.0},
             {"source_index": 4, "x": 5.0, "y": 5.0, "yield_wet_mass_area": 8000.0},
             {"source_index": 5, "x": 10.0, "y": 5.0, "yield_wet_mass_area": 7900.0},
-
             # Point right in the middle with extreme spike (25000 kg/ha)
             {"source_index": 6, "x": 5.0, "y": 2.5, "yield_wet_mass_area": 25000.0},
         ]

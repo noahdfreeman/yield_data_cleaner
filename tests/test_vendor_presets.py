@@ -25,7 +25,14 @@ class VendorPresetTests(unittest.TestCase):
         self.assertEqual(profile.mapping.get("yield_wet_mass_area"), "DRY_YIELD")
 
     def test_match_vendor_preset_signatures(self) -> None:
-        ag_headers = ["Longitude", "Latitude", "Time", "Yield (bu/ac)", "Moisture (%)", "Speed (mph)"]
+        ag_headers = [
+            "Longitude",
+            "Latitude",
+            "Time",
+            "Yield (bu/ac)",
+            "Moisture (%)",
+            "Speed (mph)",
+        ]
         self.assertEqual(match_vendor_preset(ag_headers), "agleader")
 
         jd_headers = ["LONGITUDE", "LATITUDE", "DRY_YIELD", "MOISTURE", "SWATH_WIDTH", "PASS_NUM"]

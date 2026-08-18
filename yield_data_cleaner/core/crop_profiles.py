@@ -72,7 +72,10 @@ def detect_crop_code(source_text: str, rows: list = None) -> str | None:
             if not isinstance(r, dict):
                 continue
             for col_name, val in r.items():
-                if val is not None and any(term in col_name.lower() for term in ("crop", "prod", "comm", "type", "grain", "hybrid")):
+                if val is not None and any(
+                    term in col_name.lower()
+                    for term in ("crop", "prod", "comm", "type", "grain", "hybrid")
+                ):
                     val_str = str(val).lower()
                     if any(k in val_str for k in ("soybean", "soybeans", "soya", "beans", "bean")):
                         return "soybean"
